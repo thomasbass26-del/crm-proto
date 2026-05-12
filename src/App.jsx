@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { supabase } from "./lib/supabase";
+import Auth from "./Auth";
 import {
   Home, Users, FileText, Map, Brain, Settings, Plus, ChevronRight, ChevronLeft,
   TrendingUp, Mail, Phone, Globe, Eye, Target, BarChart3, ExternalLink,
@@ -7,7 +9,7 @@ import {
   Calendar, Clock, MessageSquare, RefreshCw, Search, Tag, Bell, Activity, Inbox,
   Layers, GripVertical, ArrowUpDown, ChevronDown, CalendarPlus, Trash2, CheckCircle2,
   CalendarDays, Building2, BedDouble, Bath, AlertCircle, CheckCheck, ChevronUp,
-  Filter as FilterIcon, Bookmark, Lightbulb
+  Filter as FilterIcon, Bookmark, Lightbulb, LogOut, Loader2
 } from "lucide-react";
 
 const C = {
@@ -571,6 +573,34 @@ const ActivityRow = ({ event }) => {
 // ============================================================
 
 export default function App() {
+  // Auth
+  const [authLoading, setAuthLoading] = useState(true);
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+    });
+    return () => { mounted = false; sub.subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user) { setProfile(null); return; }
+    let cancelled = false;
+    supabase.from("profiles").select("id, email, display_name, role").eq("id", session.user.id).maybeSingle()
+      .then(({ data, error }) => { if (!cancelled && !error) setProfile(data); });
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
+
+  const signOut = async () => { await supabase.auth.signOut(); };
+
   const [view, setView] = useState("dashboard");
   const [selectedLead, setSelectedLead] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -2086,6 +2116,23 @@ export default function App() {
 
   const currentPhases = aiType ? (THINKING_PHASES[aiType] || THINKING_PHASES["market-report"]) : [];
 
+  // -------- AUTH GATE --------
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: "100vh", background: C.bg, color: C.text,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexDirection: "column", gap: 12,
+        fontFamily: "-apple-system, system-ui, sans-serif",
+      }}>
+        <TriskopeLogo size={48} />
+        <Loader2 size={20} color={C.teal} style={{ animation: "spin 1s linear infinite" }} />
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+  if (!session) return <Auth />;
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "-apple-system, system-ui, sans-serif" }}>
       <style>{`
@@ -2180,7 +2227,32 @@ export default function App() {
           })}
         </nav>
 
-        <div style={{ paddingTop: 24, borderTop: `1px solid ${C.border}` }}>
+        <div style={{ paddingTop: 16, borderTop: `1px solid ${C.border}`, marginTop: 12 }}>
+          {/* User block */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "10px 8px", borderRadius: 8,
+            background: C.bg, border: `1px solid ${C.border}`, marginBottom: 10,
+          }}>
+            <Avatar name={profile?.display_name || session?.user?.email || "user"} size={32} color={C.teal} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {profile?.display_name || (session?.user?.email || "").split("@")[0]}
+              </div>
+              <div style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                {profile?.role || "agent"}
+              </div>
+            </div>
+            <button onClick={signOut} title="Sign out" style={{
+              background: "none", border: "none", padding: 6, cursor: "pointer",
+              color: C.textDim, display: "flex", alignItems: "center", borderRadius: 6,
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.bgHover; e.currentTarget.style.color = C.red; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textDim; }}>
+              <LogOut size={14} />
+            </button>
+          </div>
+
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>
             <TriskopeLogo size={20} />
             <span>powered by <span style={{ color: C.blue, fontWeight: 600 }}>triskope</span></span>
