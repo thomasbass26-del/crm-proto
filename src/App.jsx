@@ -9,7 +9,8 @@ import {
   Calendar, Clock, MessageSquare, RefreshCw, Search, Tag, Bell, Activity, Inbox,
   Layers, GripVertical, ArrowUpDown, ChevronDown, CalendarPlus, Trash2, CheckCircle2,
   CalendarDays, Building2, BedDouble, Bath, AlertCircle, CheckCheck, ChevronUp,
-  Filter as FilterIcon, Bookmark, Lightbulb, LogOut, Loader2
+  Filter as FilterIcon, Bookmark, Lightbulb, LogOut, Loader2,
+  Send, UserPlus, AtSign, Hash
 } from "lucide-react";
 
 const C = {
@@ -572,6 +573,27 @@ export default function App() {
     return m;
   });
 
+  // Messages
+  const [messages, setMessages] = useState([]);       // messages for currently selected lead
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [msgBody, setMsgBody] = useState("");
+  const [msgSubject, setMsgSubject] = useState("");
+  const [msgChannel, setMsgChannel] = useState("email");
+
+  // Add lead modal
+  const [showAddLead, setShowAddLead] = useState(false);
+  const blankLeadDraft = {
+    name: "", email: "", phone: "", source: "Manual entry",
+    status: "new", stage: "new", score: 50,
+    area: "", budget: "", interest: "Buying",
+    aiNotes: "",
+  };
+  const [leadDraft, setLeadDraft] = useState(blankLeadDraft);
+  const [addingLead, setAddingLead] = useState(false);
+
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(null); // lead object or null
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -631,6 +653,25 @@ export default function App() {
       });
     return () => { cancelled = true; };
   }, [session?.user?.id]);
+
+  // Fetch messages for the currently selected lead
+  useEffect(() => {
+    if (!selectedLead?.id) { setMessages([]); return; }
+    let cancelled = false;
+    setMessagesLoading(true);
+    supabase
+      .from("messages")
+      .select("id, lead_id, direction, channel, subject, body, sent_at, read_at")
+      .eq("lead_id", selectedLead.id)
+      .order("sent_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        setMessagesLoading(false);
+        if (error) { setToast({ message: "Couldn't load messages", kind: "error" }); return; }
+        setMessages(data || []);
+      });
+    return () => { cancelled = true; };
+  }, [selectedLead?.id]);
 
   // Phased "thinking", then start streaming the result
   useEffect(() => {
@@ -745,6 +786,115 @@ export default function App() {
       ...prev,
       [leadId]: (prev[leadId] || []).filter(t => t.id !== taskId),
     }));
+  };
+
+  // ----- Messaging -----
+  const sendMessage = async (leadId, body, channel, subject) => {
+    if (!body.trim()) return;
+    const optimistic = {
+      id: "temp-" + Date.now(),
+      lead_id: leadId, direction: "outbound", channel,
+      subject: subject || null, body: body.trim(),
+      sent_at: new Date().toISOString(), read_at: null,
+    };
+    setMessages(prev => [...prev, optimistic]);
+    setMsgBody(""); setMsgSubject("");
+    const { data, error } = await supabase.from("messages")
+      .insert({ lead_id: leadId, direction: "outbound", channel, subject: subject || null, body: body.trim() })
+      .select()
+      .single();
+    if (error) {
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id));
+      setToast({ message: "Couldn't send: " + error.message, kind: "error" });
+      return;
+    }
+    setMessages(prev => prev.map(m => m.id === optimistic.id ? data : m));
+    setToast({
+      message: channel === "email" ? "Email queued for delivery" :
+               channel === "sms"   ? "SMS queued for delivery"   :
+               "Note saved",
+      kind: "success",
+    });
+  };
+
+  const simulateInboundReply = async (leadId, channel) => {
+    const lead = leads.find(l => l.id === leadId);
+    const first = (lead?.name || "they").split(" ")[0];
+    const samples = [
+      "Thanks for sending — yes, I'd love to see it in person this weekend if you have anything open.",
+      "Hi, just got out of a meeting. Can we chat tomorrow morning?",
+      "We're really interested. What's the offer process look like from here?",
+      "Sounds great. We're free Saturday after 2pm.",
+      "I shared with my husband — he had a few questions about the HOA. Can you send the docs?",
+    ];
+    const body = samples[Math.floor(Math.random() * samples.length)];
+    const { data, error } = await supabase.from("messages")
+      .insert({ lead_id: leadId, direction: "inbound", channel, body })
+      .select()
+      .single();
+    if (error) { setToast({ message: "Couldn't simulate inbound: " + error.message, kind: "error" }); return; }
+    setMessages(prev => [...prev, data]);
+    setToast({ message: `${first} replied`, kind: "info" });
+  };
+
+  // ----- Add lead -----
+  const submitNewLead = async () => {
+    if (!leadDraft.name.trim()) { setToast({ message: "Name is required", kind: "error" }); return; }
+    setAddingLead(true);
+    const payload = {
+      name: leadDraft.name.trim(),
+      email: leadDraft.email.trim() || null,
+      phone: leadDraft.phone.trim() || null,
+      source: leadDraft.source.trim() || "Manual entry",
+      status: leadDraft.status, stage: leadDraft.stage,
+      score: Number(leadDraft.score) || 0,
+      area: leadDraft.area.trim() || null,
+      budget: leadDraft.budget.trim() || null,
+      interest: leadDraft.interest,
+      ai_notes: leadDraft.aiNotes.trim() || null,
+      added_days: 0, last_contact: "just now",
+    };
+    const { data, error } = await supabase.from("leads").insert(payload).select(`
+      *,
+      agent:agents(full_name),
+      tags:lead_tags(tag),
+      activity:lead_activity(type, text, icon, occurred_at)
+    `).single();
+    setAddingLead(false);
+    if (error) { setToast({ message: "Couldn't add lead: " + error.message, kind: "error" }); return; }
+    // Insert an initial activity event so the timeline isn't empty
+    await supabase.from("lead_activity").insert({
+      lead_id: data.id, type: "form", text: "Lead created manually",
+      icon: "MessageSquare",
+    });
+    // Re-shape to match UI format and prepend
+    const shaped = {
+      id: data.id, name: data.name, email: data.email, phone: data.phone,
+      source: data.source, status: data.status, stage: data.stage, score: data.score,
+      area: data.area, budget: data.budget, interest: data.interest,
+      aiNotes: data.ai_notes, addedDays: data.added_days ?? 0,
+      lastContact: data.last_contact || "just now",
+      agent: data.agent?.full_name || null,
+      tags: (data.tags || []).map(t => t.tag),
+      activity: [{ type: "form", text: "Lead created manually", icon: "MessageSquare", time: "just now" }],
+    };
+    setLeads(prev => [shaped, ...prev]);
+    setShowAddLead(false);
+    setLeadDraft(blankLeadDraft);
+    setToast({ message: `Added ${shaped.name}`, kind: "success" });
+  };
+
+  // ----- Delete lead -----
+  const performDeleteLead = async () => {
+    if (!confirmDelete) return;
+    const lead = confirmDelete;
+    setConfirmDelete(null);
+    // Optimistic remove
+    setLeads(prev => prev.filter(l => l.id !== lead.id));
+    setSelectedLead(null);
+    const { error } = await supabase.from("leads").delete().eq("id", lead.id);
+    if (error) { setToast({ message: "Couldn't delete: " + error.message, kind: "error" }); return; }
+    setToast({ message: `Deleted ${lead.name}`, kind: "success" });
   };
 
   const filteredLeads = leads
@@ -1194,8 +1344,17 @@ export default function App() {
 
   const LeadsView = () => (
     <div>
-      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Lead Management</h1>
-      <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 16px" }}>AI-powered lead scoring and qualification</p>
+      <div style={pageHeader(isMobile)}>
+        <div>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Lead Management</h1>
+          <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>AI-powered lead scoring and qualification</p>
+        </div>
+        {!selectedLead && (
+          <button onClick={() => setShowAddLead(true)} style={btnPrimary()}>
+            <UserPlus size={14} /> New lead
+          </button>
+        )}
+      </div>
 
       {!selectedLead && <LeadsToolbar />}
 
@@ -1230,9 +1389,22 @@ export default function App() {
 
     return (
       <Card>
-        <button onClick={() => setSelectedLead(null)} style={{ background: "none", border: "none", color: C.teal, fontSize: 14, cursor: "pointer", padding: "4px 0", minHeight: 44, display: "flex", alignItems: "center", gap: 4 }}>
-          <ChevronLeft size={16} /> Back to all leads
-        </button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setSelectedLead(null)} style={{ background: "none", border: "none", color: C.teal, fontSize: 14, cursor: "pointer", padding: "4px 0", minHeight: 44, display: "flex", alignItems: "center", gap: 4 }}>
+            <ChevronLeft size={16} /> Back to all leads
+          </button>
+          <button onClick={() => setConfirmDelete(lead)} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "8px 12px", borderRadius: 8,
+            background: "transparent", border: `1px solid ${C.border}`,
+            color: C.textMuted, fontSize: 12, fontWeight: 500, cursor: "pointer",
+            transition: "color 0.15s ease, border-color 0.15s ease",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.borderColor = C.red + "55"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = C.textMuted; e.currentTarget.style.borderColor = C.border; }}>
+            <Trash2 size={12} /> Delete lead
+          </button>
+        </div>
 
         <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 16, margin: "12px 0 20px", flexDirection: isMobile ? "column" : "row" }}>
           <Avatar name={lead.name} size={56} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
@@ -1276,6 +1448,141 @@ export default function App() {
         <div style={{ background: `linear-gradient(135deg, ${C.teal}10, ${C.blue}10)`, borderRadius: 10, padding: 16, border: `1px solid ${C.teal}25`, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Brain size={16} color={C.teal} /><span style={{ fontSize: 14, fontWeight: 600, color: C.teal }}>AI Analysis</span></div>
           <p style={{ fontSize: 13, color: C.textMuted, margin: 0, lineHeight: 1.6 }}>{lead.aiNotes}</p>
+        </div>
+
+        {/* Messages */}
+        <div style={{ marginBottom: 16, padding: 14, background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <Send size={14} color={C.blue} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Messages</span>
+            <span style={{ fontSize: 11, color: C.textDim }}>{messages.length}</span>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: C.bgCard, borderRadius: 6, padding: 2, border: `1px solid ${C.border}` }}>
+              {[
+                { id: "email", label: "Email", icon: Mail },
+                { id: "sms",   label: "SMS",   icon: Phone },
+                { id: "note",  label: "Note",  icon: MessageSquare },
+              ].map(c => (
+                <button key={c.id} onClick={() => setMsgChannel(c.id)} style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  padding: "4px 8px", borderRadius: 4, border: "none",
+                  background: msgChannel === c.id ? `linear-gradient(135deg, ${C.teal}25, ${C.blue}18)` : "transparent",
+                  color: msgChannel === c.id ? C.teal : C.textMuted,
+                  fontSize: 11, fontWeight: 600, cursor: "pointer",
+                }}><c.icon size={11} /> {c.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Thread */}
+          <div style={{ maxHeight: 320, overflowY: "auto", padding: "4px 2px", marginBottom: 12 }}>
+            {messagesLoading ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Skeleton height={40} /><Skeleton height={40} /><Skeleton height={40} />
+              </div>
+            ) : messages.length === 0 ? (
+              <div style={{ padding: "20px 8px", fontSize: 12, color: C.textDim, textAlign: "center", fontStyle: "italic" }}>
+                No messages yet. Send the first one below.
+              </div>
+            ) : messages.map(m => {
+              const isOut = m.direction === "outbound";
+              const channelIcon = m.channel === "email" ? Mail : m.channel === "sms" ? Phone : MessageSquare;
+              const ChannelIcon = channelIcon;
+              return (
+                <div key={m.id} style={{
+                  display: "flex", marginBottom: 8,
+                  justifyContent: isOut ? "flex-end" : "flex-start",
+                }}>
+                  <div style={{
+                    maxWidth: "80%",
+                    background: isOut ? `linear-gradient(135deg, ${C.teal}, ${C.blue})` : C.bgCard,
+                    color: isOut ? "#0a0a14" : C.text,
+                    border: isOut ? "none" : `1px solid ${C.border}`,
+                    borderRadius: isOut ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                    padding: "8px 12px",
+                    fontSize: 13, lineHeight: 1.45,
+                  }}>
+                    {m.subject && (
+                      <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 12, opacity: 0.85 }}>{m.subject}</div>
+                    )}
+                    <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.body}</div>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 4,
+                      fontSize: 10, marginTop: 4,
+                      color: isOut ? "rgba(10,10,20,0.65)" : C.textDim,
+                    }}>
+                      <ChannelIcon size={10} />
+                      {timeAgo(m.sent_at)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Compose */}
+          {msgChannel === "email" && (
+            <input
+              type="text" value={msgSubject}
+              onChange={e => setMsgSubject(e.target.value)}
+              placeholder="Subject (optional)"
+              style={{
+                width: "100%", padding: "10px 12px", marginBottom: 8,
+                background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.text, fontSize: 13, outline: "none",
+              }}
+            />
+          )}
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <textarea
+              value={msgBody}
+              onChange={e => setMsgBody(e.target.value)}
+              placeholder={
+                msgChannel === "email" ? "Type an email to " + lead.name.split(" ")[0] + "..." :
+                msgChannel === "sms"   ? "Type an SMS (160 chars)..." :
+                "Type a private note..."
+              }
+              rows={3}
+              maxLength={msgChannel === "sms" ? 160 : undefined}
+              style={{
+                flex: 1, padding: "10px 12px",
+                background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.text, fontSize: 13, outline: "none", resize: "vertical",
+                fontFamily: "inherit", minHeight: 60,
+              }}
+              onKeyDown={e => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  sendMessage(lead.id, msgBody, msgChannel, msgSubject);
+                }
+              }}
+            />
+            <button
+              onClick={() => sendMessage(lead.id, msgBody, msgChannel, msgSubject)}
+              disabled={!msgBody.trim()}
+              style={{
+                ...btnPrimary(),
+                opacity: msgBody.trim() ? 1 : 0.5,
+                cursor: msgBody.trim() ? "pointer" : "not-allowed",
+              }}>
+              <Send size={14} /> Send
+            </button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+            <div style={{ fontSize: 10, color: C.textDim }}>
+              {msgChannel === "email" ? `Will be sent to ${lead.email || "no email on file"}` :
+               msgChannel === "sms"   ? `Will be texted to ${lead.phone || "no phone on file"}` :
+               "Internal note, not sent to the lead"}
+              {" "} · Cmd/Ctrl+Enter to send
+            </div>
+            {msgChannel !== "note" && (
+              <button onClick={() => simulateInboundReply(lead.id, msgChannel)} style={{
+                background: "none", border: "none", color: C.textDim,
+                fontSize: 10, cursor: "pointer", padding: 0,
+                textDecoration: "underline", textDecorationStyle: "dotted",
+              }}>
+                Demo: simulate {lead.name.split(" ")[0]}'s reply
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tasks (follow-ups) */}
@@ -2101,6 +2408,166 @@ export default function App() {
     </div>
   );
 
+  // ----- Add Lead Modal -----
+  const AddLeadModal = () => {
+    if (!showAddLead) return null;
+    const fieldStyle = {
+      width: "100%", padding: "10px 12px",
+      background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+      color: C.text, fontSize: 13, outline: "none",
+    };
+    const labelStyle = { display: "block", fontSize: 11, fontWeight: 600, color: C.textDim, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" };
+    const setField = (key, val) => setLeadDraft(prev => ({ ...prev, [key]: val }));
+    return (
+      <div onClick={() => !addingLead && setShowAddLead(false)} style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 450, padding: isMobile ? 0 : 20,
+      }}>
+        <div onClick={e => e.stopPropagation()} style={{
+          background: C.bgCard, borderRadius: isMobile ? 0 : 14,
+          width: isMobile ? "100%" : 560, maxWidth: "100%",
+          maxHeight: isMobile ? "100%" : "90vh", overflow: "auto",
+          border: `1px solid ${C.border}`,
+        }}>
+          <div style={{ padding: 20, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: C.teal + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <UserPlus size={18} color={C.teal} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Add a new lead</h2>
+              <p style={{ fontSize: 12, color: C.textDim, margin: "2px 0 0" }}>They'll go straight into your CRM.</p>
+            </div>
+            <button onClick={() => setShowAddLead(false)} style={{ background: "none", border: "none", color: C.textDim, cursor: "pointer", padding: 8 }}><X size={18} /></button>
+          </div>
+          <div style={{ padding: 20 }}>
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Name *</label>
+              <input autoFocus type="text" value={leadDraft.name} onChange={e => setField("name", e.target.value)} style={fieldStyle} placeholder="e.g., Robert Williams" />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={labelStyle}>Email</label>
+                <input type="email" value={leadDraft.email} onChange={e => setField("email", e.target.value)} style={fieldStyle} placeholder="name@example.com" />
+              </div>
+              <div>
+                <label style={labelStyle}>Phone</label>
+                <input type="tel" value={leadDraft.phone} onChange={e => setField("phone", e.target.value)} style={fieldStyle} placeholder="(843) 555-0100" />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={labelStyle}>Status</label>
+                <select value={leadDraft.status} onChange={e => setField("status", e.target.value)} style={selectStyle()}>
+                  <option value="new">New</option>
+                  <option value="nurture">Nurture</option>
+                  <option value="hot">Hot</option>
+                  <option value="cold">Cold</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Stage</label>
+                <select value={leadDraft.stage} onChange={e => setField("stage", e.target.value)} style={selectStyle()}>
+                  {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Score</label>
+                <input type="number" min={0} max={100} value={leadDraft.score} onChange={e => setField("score", e.target.value)} style={fieldStyle} />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={labelStyle}>Area</label>
+                <input type="text" value={leadDraft.area} onChange={e => setField("area", e.target.value)} style={fieldStyle} placeholder="e.g., Pawleys Island" />
+              </div>
+              <div>
+                <label style={labelStyle}>Budget</label>
+                <input type="text" value={leadDraft.budget} onChange={e => setField("budget", e.target.value)} style={fieldStyle} placeholder="$350K-$450K" />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={labelStyle}>Interest</label>
+                <select value={leadDraft.interest} onChange={e => setField("interest", e.target.value)} style={selectStyle()}>
+                  <option value="Buying">Buying</option>
+                  <option value="Selling">Selling</option>
+                  <option value="Investing">Investing</option>
+                  <option value="Renting">Renting</option>
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Source</label>
+                <input type="text" value={leadDraft.source} onChange={e => setField("source", e.target.value)} style={fieldStyle} placeholder="Manual entry" />
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Notes</label>
+              <textarea value={leadDraft.aiNotes} onChange={e => setField("aiNotes", e.target.value)} rows={3} style={{ ...fieldStyle, resize: "vertical", minHeight: 70, fontFamily: "inherit" }} placeholder="What do you know about this lead so far?" />
+            </div>
+          </div>
+          <div style={{ padding: 16, borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button onClick={() => setShowAddLead(false)} disabled={addingLead} style={{
+              padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
+              background: "transparent", color: C.text, fontSize: 13, fontWeight: 500,
+              cursor: addingLead ? "not-allowed" : "pointer", minHeight: 44,
+            }}>Cancel</button>
+            <button onClick={submitNewLead} disabled={addingLead || !leadDraft.name.trim()} style={{
+              ...btnPrimary(),
+              opacity: (addingLead || !leadDraft.name.trim()) ? 0.5 : 1,
+              cursor: (addingLead || !leadDraft.name.trim()) ? "not-allowed" : "pointer",
+            }}>
+              {addingLead ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <UserPlus size={14} />}
+              {addingLead ? "Adding..." : "Add lead"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ----- Delete Confirmation -----
+  const DeleteConfirmModal = () => {
+    if (!confirmDelete) return null;
+    const lead = confirmDelete;
+    return (
+      <div onClick={() => setConfirmDelete(null)} style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 460, padding: 20,
+      }}>
+        <div onClick={e => e.stopPropagation()} style={{
+          background: C.bgCard, borderRadius: 14, width: "100%", maxWidth: 440,
+          border: `1px solid ${C.red}33`, overflow: "hidden",
+        }}>
+          <div style={{ padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: C.red + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <AlertCircle size={20} color={C.red} />
+              </div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Delete {lead.name}?</h2>
+            </div>
+            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, margin: 0 }}>
+              This will permanently remove the lead along with their tags, activity, notes, follow-ups, and any messages. This can't be undone.
+            </p>
+          </div>
+          <div style={{ padding: 16, background: C.bg, borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button onClick={() => setConfirmDelete(null)} style={{
+              padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
+              background: "transparent", color: C.text, fontSize: 13, fontWeight: 500,
+              cursor: "pointer", minHeight: 44,
+            }}>Cancel</button>
+            <button onClick={performDeleteLead} style={{
+              padding: "10px 14px", borderRadius: 8, border: "none",
+              background: C.red, color: "#fff", fontSize: 13, fontWeight: 600,
+              cursor: "pointer", minHeight: 44, display: "flex", alignItems: "center", gap: 6,
+            }}><Trash2 size={14} /> Delete</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const ListingDetailModal = () => {
     if (!selectedListing) return null;
     const L = selectedListing;
@@ -2505,6 +2972,8 @@ export default function App() {
       )}
 
       <ListingDetailModal />
+      <AddLeadModal />
+      <DeleteConfirmModal />
 
       {toast && <Toast message={toast.message} kind={toast.kind} onDismiss={() => setToast(null)} />}
     </div>
