@@ -349,17 +349,28 @@ const Avatar = ({ name, size = 36, color = C.teal }) => (
   </div>
 );
 
-const StatCard = ({ icon: Icon, label, value, change, color = C.teal, subtitle, isMobile }) => (
-  <div style={{ background: C.bgCard, borderRadius: 12, padding: isMobile ? 16 : 20, border: `1px solid ${C.border}`, flex: isMobile ? "1 1 100%" : 1, minWidth: isMobile ? "auto" : 200, transition: "transform 0.2s ease, border-color 0.2s ease" }}
-       onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderLight; e.currentTarget.style.transform = "translateY(-2px)"; }}
-       onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "translateY(0)"; }}>
+const StatCard = ({ icon: Icon, label, value, change, color = C.teal, subtitle, isMobile, sparkline }) => (
+  <div style={{
+    background: C.bgCard, borderRadius: 12, padding: isMobile ? 16 : 20,
+    border: `1px solid ${C.border}`,
+    flex: isMobile ? "1 1 100%" : 1, minWidth: isMobile ? "auto" : 200,
+    transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
+    position: "relative", overflow: "hidden",
+  }}
+       onMouseEnter={e => { e.currentTarget.style.borderColor = color + "55"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 12px 24px ${color}12`; }}
+       onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
       <div style={{ width: 40, height: 40, borderRadius: 10, background: color + "15", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={20} color={color} /></div>
       {change && <span style={{ fontSize: 13, fontWeight: 600, color: C.green, display: "flex", alignItems: "center", gap: 2 }}><TrendingUp size={14} /> {change}</span>}
     </div>
-    <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: C.text }}>{value}</div>
-    <div style={{ fontSize: 13, color: C.textMuted }}>{label}</div>
+    <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: C.text, lineHeight: 1.1 }}>{value}</div>
+    <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{label}</div>
     {subtitle && <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{subtitle}</div>}
+    {sparkline && sparkline.length > 0 && (
+      <div style={{ marginTop: 10, marginLeft: -4, marginRight: -4, marginBottom: -4 }}>
+        <Sparkline data={sparkline} color={color} />
+      </div>
+    )}
   </div>
 );
 
@@ -425,6 +436,56 @@ const ActivityRow = ({ event }) => {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, color: C.text, fontWeight: 500, lineHeight: 1.35 }}>{event.text}</div>
         <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{event.time}</div>
+      </div>
+    </div>
+  );
+};
+
+// Pulsing skeleton placeholder while data loads
+const Skeleton = ({ width = "100%", height = 16, style = {} }) => (
+  <div style={{
+    width, height,
+    background: `linear-gradient(90deg, ${C.bgHover} 0%, ${C.borderLight} 50%, ${C.bgHover} 100%)`,
+    backgroundSize: "200% 100%",
+    borderRadius: 6,
+    animation: "tk-shimmer 1.4s linear infinite",
+    ...style,
+  }} />
+);
+
+// Tiny inline trend chart used inside StatCard
+const Sparkline = ({ data, color = C.teal, height = 28 }) => {
+  const id = `spark-${color.replace("#", "")}`;
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.5} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <Area type="monotone" dataKey="v" stroke={color} fill={`url(#${id})`} strokeWidth={1.6} dot={false} isAnimationActive={false} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Branded tooltip for the dashboard charts
+const ChartTooltip = ({ active, payload, label, valueFormatter, labelFormatter }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: C.bgCard, border: `1px solid ${C.borderLight}`,
+      borderRadius: 8, padding: "8px 12px",
+      boxShadow: "0 6px 20px rgba(0,0,0,0.45)",
+      pointerEvents: "none",
+    }}>
+      <div style={{ fontSize: 11, color: C.textDim, marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        {labelFormatter ? labelFormatter(label) : label}
+      </div>
+      <div style={{ fontSize: 15, color: C.text, fontWeight: 700 }}>
+        {valueFormatter ? valueFormatter(payload[0].value) : payload[0].value}
       </div>
     </div>
   );
@@ -796,71 +857,233 @@ export default function App() {
   );
 
   // ----- DASHBOARD -----
-  const Dashboard = () => (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 24, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Platform Dashboard</h1>
-          <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>triskope — see everything together</p>
-        </div>
-        {!isMobile && (
-          <button onClick={() => runAI("market-report", REPORTS[0])} style={btnPrimary()}><Sparkles size={16} /> AI Insights</button>
-        )}
-      </div>
+  const Dashboard = () => {
+    const hotLeads = leads.filter(l => l.status === "hot");
+    const newLeads = leads.filter(l => l.status === "new");
+    const dueToday = taskBuckets.today;
+    const overdue = taskBuckets.overdue;
+    const recentEvents = leads
+      .flatMap(l => (l.activity || []).slice(0, 2).map(a => ({ ...a, leadName: l.name, leadId: l.id })))
+      .slice(0, 4);
 
-      <div style={{ display: "flex", gap: isMobile ? 12 : 16, marginBottom: 24, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
-        <StatCard icon={Users} label="Total Agents" value="48" change="+12%" color={C.teal} subtitle="Active subscribers" isMobile={isMobile} />
-        <StatCard icon={Target} label="Total Leads" value="1,247" change="+18%" color={C.blue} subtitle="Across all agents" isMobile={isMobile} />
-        <StatCard icon={FileText} label="Market Reports" value="33" change="+6" color={C.purple} subtitle="Auto-generated pages" isMobile={isMobile} />
-        <StatCard icon={DollarSign} label="MRR" value="$26.8K" change="+19%" color={C.teal} subtitle="Monthly recurring revenue" isMobile={isMobile} />
-      </div>
+    // Sparkline series (last 7 days, mock for now — will become a DB rollup later)
+    const sparkAgents  = [42, 43, 43, 44, 46, 47, 48].map(v => ({ v }));
+    const sparkLeads   = [1100, 1140, 1158, 1180, 1205, 1230, 1247].map(v => ({ v }));
+    const sparkReports = [27, 28, 30, 31, 32, 33, 33].map(v => ({ v }));
+    const sparkMRR     = [22400, 22800, 23400, 24600, 25400, 26200, 26800].map(v => ({ v }));
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
-        <Card>
-          <h3 style={cardTitle()}>Weekly Lead Flow</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={WEEKLY}>
-              <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.teal} stopOpacity={0.3} /><stop offset="95%" stopColor={C.teal} stopOpacity={0} /></linearGradient></defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-              <XAxis dataKey="day" stroke={C.textDim} fontSize={12} />
-              <YAxis stroke={C.textDim} fontSize={12} />
-              <Tooltip contentStyle={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }} />
-              <Area type="monotone" dataKey="leads" stroke={C.teal} fill="url(#g)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Card>
-        <Card>
-          <h3 style={cardTitle()}>Revenue Growth</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={REVENUE}>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-              <XAxis dataKey="month" stroke={C.textDim} fontSize={12} />
-              <YAxis stroke={C.textDim} fontSize={12} tickFormatter={v => `$${v / 1000}K`} />
-              <Tooltip contentStyle={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }} formatter={v => [`$${v.toLocaleString()}`, "Revenue"]} />
-              <Bar dataKey="revenue" fill={C.blue} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
-
-      <Card>
-        <h3 style={cardTitle()}>Recent Hot Leads</h3>
-        {leads.filter(l => l.status === "hot").map(lead => (
-          <div key={lead.id} onClick={() => { setSelectedLead(lead); setView("leads"); if (isMobile) setSidebarOpen(false); }}
-               style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background 0.15s ease", borderRadius: 6 }}
-               onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
-               onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-            <Avatar name={lead.name} size={36} color={C.red} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</div>
-              <div style={{ fontSize: 12, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.source} • {lead.agent}</div>
-            </div>
-            <Score score={lead.score} />
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
+          <div>
+            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>
+              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}{profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}
+            </h1>
+            <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Here's what's moving today across triskope.</p>
           </div>
-        ))}
-      </Card>
-    </div>
-  );
+          {!isMobile && (
+            <button onClick={() => runAI("market-report", REPORTS[0])} style={btnPrimary()}><Sparkles size={16} /> AI Insights</button>
+          )}
+        </div>
+
+        {/* Today's focus widget */}
+        <Card style={{
+          marginBottom: 20,
+          background: `linear-gradient(135deg, ${C.bgCard} 0%, ${C.bgCard} 55%, ${C.teal}08 100%)`,
+          borderColor: C.teal + "33",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <Sparkles size={14} color={C.teal} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.teal, letterSpacing: "0.12em", textTransform: "uppercase" }}>Today's focus</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 16 : 20 }}>
+            {/* Hot leads */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 6, height: 6, borderRadius: 3, background: C.red }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Hot leads need attention</span>
+                <span style={{ fontSize: 10, color: C.textDim, marginLeft: "auto" }}>{hotLeads.length}</span>
+              </div>
+              {leadsLoading ? (
+                <>
+                  <Skeleton height={36} style={{ marginBottom: 8 }} />
+                  <Skeleton height={36} style={{ marginBottom: 8 }} />
+                  <Skeleton height={36} />
+                </>
+              ) : hotLeads.length === 0 ? (
+                <div style={{ fontSize: 12, color: C.textDim, fontStyle: "italic", padding: "12px 0" }}>No hot leads right now — quiet day.</div>
+              ) : hotLeads.slice(0, 3).map(lead => (
+                <div key={lead.id}
+                  onClick={() => { setSelectedLead(lead); setView("leads"); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 8px", borderRadius: 8,
+                    cursor: "pointer", marginBottom: 4,
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <Avatar name={lead.name} size={28} color={C.red} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</div>
+                    <div style={{ fontSize: 10, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.area} • {lead.lastContact}</div>
+                  </div>
+                  <Score score={lead.score} />
+                </div>
+              ))}
+            </div>
+
+            {/* Tasks today / overdue */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 6, height: 6, borderRadius: 3, background: C.amber }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Follow-ups</span>
+                <span style={{ fontSize: 10, color: C.textDim, marginLeft: "auto" }}>
+                  {overdue.length > 0 && <span style={{ color: C.red, fontWeight: 700, marginRight: 6 }}>{overdue.length} overdue</span>}
+                  {dueToday.length} today
+                </span>
+              </div>
+              {(overdue.length === 0 && dueToday.length === 0) ? (
+                <div style={{ fontSize: 12, color: C.textDim, fontStyle: "italic", padding: "12px 0" }}>
+                  Inbox zero. Add a follow-up from any lead's detail page.
+                </div>
+              ) : (
+                [...overdue, ...dueToday].slice(0, 3).map(t => (
+                  <div key={t.id} onClick={() => jumpToLead(t.leadId)} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 8px", borderRadius: 8,
+                    cursor: "pointer", marginBottom: 4,
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: (overdue.includes(t) ? C.red : C.amber) + "20", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <CalendarPlus size={12} color={overdue.includes(t) ? C.red : C.amber} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.text}</div>
+                      <div style={{ fontSize: 10, color: C.textDim }}>
+                        {t.lead?.name || "—"}{overdue.includes(t) ? " · overdue" : " · due today"}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Recent activity */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 6, height: 6, borderRadius: 3, background: C.teal }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Latest activity</span>
+              </div>
+              {leadsLoading ? (
+                <>
+                  <Skeleton height={36} style={{ marginBottom: 8 }} />
+                  <Skeleton height={36} style={{ marginBottom: 8 }} />
+                  <Skeleton height={36} />
+                </>
+              ) : recentEvents.length === 0 ? (
+                <div style={{ fontSize: 12, color: C.textDim, fontStyle: "italic", padding: "12px 0" }}>No activity yet — once leads come in, you'll see it here.</div>
+              ) : recentEvents.slice(0, 3).map((ev, i) => {
+                const Icon = ICONS[ev.icon] || Activity;
+                return (
+                  <div key={i} onClick={() => jumpToLead(ev.leadId)} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 8px", borderRadius: 8,
+                    cursor: "pointer", marginBottom: 4,
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <div style={{ width: 24, height: 24, borderRadius: 6, background: C.teal + "15", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Icon size={12} color={C.teal} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.text}</div>
+                      <div style={{ fontSize: 10, color: C.textDim }}>{ev.leadName} · {ev.time}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+
+        <div className="tk-stagger" style={{ display: "flex", gap: isMobile ? 12 : 16, marginBottom: 24, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+          <StatCard icon={Users}      label="Total Agents"   value="48"      change="+12%" color={C.teal}   subtitle="Active subscribers"     isMobile={isMobile} sparkline={sparkAgents} />
+          <StatCard icon={Target}     label="Total Leads"    value="1,247"   change="+18%" color={C.blue}   subtitle="Across all agents"      isMobile={isMobile} sparkline={sparkLeads} />
+          <StatCard icon={FileText}   label="Market Reports" value="33"      change="+6"   color={C.purple} subtitle="Auto-generated pages"   isMobile={isMobile} sparkline={sparkReports} />
+          <StatCard icon={DollarSign} label="MRR"            value="$26.8K"  change="+19%" color={C.green}  subtitle="Monthly recurring revenue" isMobile={isMobile} sparkline={sparkMRR} />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
+          <Card>
+            <h3 style={cardTitle()}>Weekly Lead Flow</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={WEEKLY} margin={{ top: 10, right: 8, bottom: 0, left: -16 }}>
+                <defs>
+                  <linearGradient id="weekly-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={C.teal} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={C.teal} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={C.border} strokeDasharray="2 6" horizontal vertical={false} />
+                <XAxis dataKey="day" stroke={C.textDim} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={C.textDim} fontSize={11} tickLine={false} axisLine={false} width={28} />
+                <Tooltip cursor={{ stroke: C.teal + "55", strokeWidth: 1 }}
+                         content={<ChartTooltip valueFormatter={v => `${v} leads`} />} />
+                <Area type="monotone" dataKey="leads" stroke={C.teal} fill="url(#weekly-gradient)" strokeWidth={2.5} activeDot={{ r: 5, fill: C.teal, stroke: C.bg, strokeWidth: 2 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+          <Card>
+            <h3 style={cardTitle()}>Revenue Growth</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={REVENUE} margin={{ top: 10, right: 8, bottom: 0, left: -8 }}>
+                <CartesianGrid stroke={C.border} strokeDasharray="2 6" horizontal vertical={false} />
+                <XAxis dataKey="month" stroke={C.textDim} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={C.textDim} fontSize={11} tickLine={false} axisLine={false} width={40} tickFormatter={v => `$${v / 1000}K`} />
+                <Tooltip cursor={{ fill: C.bgHover, opacity: 0.6 }}
+                         content={<ChartTooltip valueFormatter={v => `$${v.toLocaleString()}`} labelFormatter={l => l + " 2026"} />} />
+                <Bar dataKey="revenue" fill={C.blue} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <h3 style={{ ...cardTitle(), margin: 0 }}>Recent Hot Leads</h3>
+            <span style={{ fontSize: 11, color: C.textDim }}>{hotLeads.length} active</span>
+          </div>
+          {leadsLoading ? (
+            <>
+              <Skeleton height={52} style={{ marginBottom: 8 }} />
+              <Skeleton height={52} style={{ marginBottom: 8 }} />
+              <Skeleton height={52} />
+            </>
+          ) : hotLeads.length === 0 ? (
+            <EmptyState icon={Target} title="No hot leads yet" message="When a lead's engagement crosses 80, they'll appear here." />
+          ) : hotLeads.map(lead => (
+            <div key={lead.id} onClick={() => { setSelectedLead(lead); setView("leads"); if (isMobile) setSidebarOpen(false); }}
+                 style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 8px", marginLeft: -8, marginRight: -8, borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background 0.15s ease", borderRadius: 6 }}
+                 onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
+                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <Avatar name={lead.name} size={36} color={C.red} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</div>
+                <div style={{ fontSize: 12, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {lead.source} • {lead.agent || "Unassigned"} • {lead.lastContact}
+                </div>
+              </div>
+              <Score score={lead.score} />
+            </div>
+          ))}
+        </Card>
+      </div>
+    );
+  };
 
   // ----- LEADS -----
   const LeadsToolbar = () => (
@@ -2057,8 +2280,18 @@ export default function App() {
         @keyframes tk-toast { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
         @keyframes tk-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
         @keyframes tk-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes tk-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        @keyframes tk-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .tk-cursor { display: inline-block; width: 8px; height: 14px; background: ${C.teal}; vertical-align: middle; margin-left: 2px; animation: tk-pulse 0.9s ease-in-out infinite; }
         .tk-view { animation: tk-fade 0.25s ease; }
+        .tk-rise { animation: tk-rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+        .tk-stagger > * { animation: tk-rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+        .tk-stagger > *:nth-child(1) { animation-delay: 0ms; }
+        .tk-stagger > *:nth-child(2) { animation-delay: 60ms; }
+        .tk-stagger > *:nth-child(3) { animation-delay: 120ms; }
+        .tk-stagger > *:nth-child(4) { animation-delay: 180ms; }
+        .tk-stagger > *:nth-child(5) { animation-delay: 240ms; }
+        .tk-stagger > *:nth-child(6) { animation-delay: 300ms; }
         button:focus-visible, a:focus-visible { outline: 2px solid ${C.teal}; outline-offset: 2px; }
       `}</style>
 
