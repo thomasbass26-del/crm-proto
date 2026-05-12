@@ -556,6 +556,7 @@ export default function App() {
   const [taskDraft, setTaskDraft] = useState("");
   const [taskDueDraft, setTaskDueDraft] = useState("");
   const [draggingId, setDraggingId] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
   const [stageMenuFor, setStageMenuFor] = useState(null); // leadId whose stage menu is open
 
   // Phase 3: Listings, Tasks, Inbox
@@ -593,6 +594,11 @@ export default function App() {
 
   // Delete confirmation
   const [confirmDelete, setConfirmDelete] = useState(null); // lead object or null
+
+  // Public site preview
+  const [previewAgentId, setPreviewAgentId] = useState(AGENTS[0].id);
+  const [previewCommunityId, setPreviewCommunityId] = useState(COMMUNITIES[0].id);
+  const [previewForm, setPreviewForm] = useState({ name: "", email: "", phone: "", message: "" });
 
   useEffect(() => {
     const handleResize = () => {
@@ -985,6 +991,7 @@ export default function App() {
     { id: "listings", label: "Listings", icon: Building2 },
     { id: "reports", label: "Market Reports", icon: FileText },
     { id: "communities", label: "Communities", icon: Map },
+    { id: "preview", label: "Site Preview", icon: Globe },
     { id: "agents", label: "Agents", icon: Award },
     { id: "ai", label: "AI Tools", icon: Brain },
     { id: "billing", label: "Plans", icon: Settings },
@@ -1485,33 +1492,46 @@ export default function App() {
               </div>
             ) : messages.map(m => {
               const isOut = m.direction === "outbound";
-              const channelIcon = m.channel === "email" ? Mail : m.channel === "sms" ? Phone : MessageSquare;
-              const ChannelIcon = channelIcon;
+              const ChannelIcon = m.channel === "email" ? Mail : m.channel === "sms" ? Phone : MessageSquare;
+              const senderName = isOut
+                ? (profile?.display_name || (session?.user?.email || "").split("@")[0] || "You")
+                : lead.name;
+              const senderColor = isOut ? C.teal : (lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim);
               return (
                 <div key={m.id} style={{
-                  display: "flex", marginBottom: 8,
-                  justifyContent: isOut ? "flex-end" : "flex-start",
+                  display: "flex", marginBottom: 12, gap: 8,
+                  flexDirection: isOut ? "row-reverse" : "row",
+                  alignItems: "flex-end",
                 }}>
-                  <div style={{
-                    maxWidth: "80%",
-                    background: isOut ? `linear-gradient(135deg, ${C.teal}, ${C.blue})` : C.bgCard,
-                    color: isOut ? "#0a0a14" : C.text,
-                    border: isOut ? "none" : `1px solid ${C.border}`,
-                    borderRadius: isOut ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
-                    padding: "8px 12px",
-                    fontSize: 13, lineHeight: 1.45,
-                  }}>
-                    {m.subject && (
-                      <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 12, opacity: 0.85 }}>{m.subject}</div>
-                    )}
-                    <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.body}</div>
+                  <Avatar name={senderName} size={26} color={senderColor} />
+                  <div style={{ maxWidth: "75%", display: "flex", flexDirection: "column", alignItems: isOut ? "flex-end" : "flex-start" }}>
+                    <div style={{ fontSize: 10, color: C.textDim, padding: "0 6px 3px", display: "flex", gap: 6 }}>
+                      <span style={{ fontWeight: 600, color: isOut ? C.teal : C.text }}>
+                        {isOut ? `${senderName.split(" ")[0]} (you)` : senderName.split(" ")[0]}
+                      </span>
+                      <span>·</span>
+                      <span>{timeAgo(m.sent_at)}</span>
+                    </div>
                     <div style={{
-                      display: "flex", alignItems: "center", gap: 4,
-                      fontSize: 10, marginTop: 4,
-                      color: isOut ? "rgba(10,10,20,0.65)" : C.textDim,
+                      background: isOut ? `linear-gradient(135deg, ${C.teal}, ${C.blue})` : C.bgCard,
+                      color: isOut ? "#0a0a14" : C.text,
+                      border: isOut ? "none" : `1px solid ${C.border}`,
+                      borderRadius: isOut ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                      padding: "8px 12px",
+                      fontSize: 13, lineHeight: 1.45,
                     }}>
-                      <ChannelIcon size={10} />
-                      {timeAgo(m.sent_at)}
+                      {m.subject && (
+                        <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 12, opacity: 0.85 }}>{m.subject}</div>
+                      )}
+                      <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.body}</div>
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 4,
+                        fontSize: 10, marginTop: 4,
+                        color: isOut ? "rgba(10,10,20,0.65)" : C.textDim,
+                      }}>
+                        <ChannelIcon size={10} />
+                        {m.channel}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1786,98 +1806,131 @@ export default function App() {
         }}>
           {STAGES.map(stage => {
             const leads = stageLeads(stage.id);
+            const isHover = dragOverStage === stage.id;
+            const isDragSourceStage = draggingId && leads.some(l => l.id === draggingId);
             return (
               <div
                 key={stage.id}
-                onDragOver={e => { e.preventDefault(); }}
+                onDragOver={e => { e.preventDefault(); if (!isHover) setDragOverStage(stage.id); }}
+                onDragLeave={() => setDragOverStage(prev => prev === stage.id ? null : prev)}
                 onDrop={e => {
                   e.preventDefault();
                   const id = e.dataTransfer.getData("leadId");
                   if (id) moveLeadToStage(id, stage.id);
-                  setDraggingId(null);
+                  setDraggingId(null); setDragOverStage(null);
                 }}
                 style={{
-                  background: C.bgCard, borderRadius: 12, border: `1px solid ${C.border}`,
+                  background: isHover ? stage.color + "10" : C.bgCard,
+                  borderRadius: 12,
+                  border: `1px ${isHover ? "dashed" : "solid"} ${isHover ? stage.color + "88" : C.border}`,
                   padding: 12, minHeight: 200,
                   borderTop: `3px solid ${stage.color}`,
+                  transition: "background 0.18s ease, border-color 0.18s ease, transform 0.18s ease",
+                  transform: isHover ? "scale(1.01)" : "scale(1)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: stage.color }} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{stage.label}</span>
-                  <span style={{ fontSize: 11, color: C.textDim, marginLeft: "auto" }}>{leads.length}</span>
+                  <span style={{
+                    fontSize: 11, marginLeft: "auto",
+                    padding: "1px 6px", borderRadius: 9999,
+                    background: stage.color + "1a", color: stage.color, fontWeight: 700,
+                  }}>{leads.length}</span>
                 </div>
 
                 {leads.length === 0 ? (
-                  <div style={{ fontSize: 11, color: C.textDim, padding: "16px 8px", textAlign: "center" }}>Drop a lead here</div>
+                  <div style={{
+                    fontSize: 11, color: isHover ? stage.color : C.textDim,
+                    padding: "16px 8px", textAlign: "center",
+                    border: `1px dashed ${isHover ? stage.color + "55" : C.border}`,
+                    borderRadius: 8, transition: "all 0.15s ease",
+                  }}>
+                    {isHover ? `Drop into ${stage.label}` : "Drop a lead here"}
+                  </div>
                 ) : (
-                  leads.map(lead => (
-                    <div
-                      key={lead.id}
-                      draggable={!isMobile}
-                      onDragStart={e => { e.dataTransfer.setData("leadId", String(lead.id)); setDraggingId(lead.id); }}
-                      onDragEnd={() => setDraggingId(null)}
-                      onClick={() => setSelectedLead(lead) || setView("leads") || (isMobile && setSidebarOpen(false))}
-                      style={{
-                        background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
-                        padding: 10, marginBottom: 8, cursor: isMobile ? "pointer" : "grab",
-                        opacity: draggingId === lead.id ? 0.4 : 1,
-                        transition: "opacity 0.15s ease, border-color 0.15s ease",
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = C.borderLight}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        {!isMobile && <GripVertical size={12} color={C.textDim} />}
-                        <Avatar name={lead.name} size={26} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</div>
-                          <div style={{ fontSize: 10, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.area}</div>
+                  leads.map(lead => {
+                    const isThisDragging = draggingId === lead.id;
+                    return (
+                      <div
+                        key={lead.id}
+                        draggable={!isMobile}
+                        onDragStart={e => { e.dataTransfer.setData("leadId", String(lead.id)); e.dataTransfer.effectAllowed = "move"; setDraggingId(lead.id); }}
+                        onDragEnd={() => { setDraggingId(null); setDragOverStage(null); }}
+                        onClick={() => { setSelectedLead(lead); setView("leads"); if (isMobile) setSidebarOpen(false); }}
+                        style={{
+                          background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
+                          padding: 10, marginBottom: 8,
+                          cursor: isMobile ? "pointer" : (isThisDragging ? "grabbing" : "grab"),
+                          opacity: isThisDragging ? 0.35 : 1,
+                          transform: isThisDragging ? "scale(0.98)" : "scale(1)",
+                          boxShadow: isThisDragging ? "0 0 0 1px " + stage.color + "55" : "none",
+                          transition: "opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease",
+                        }}
+                        onMouseEnter={e => { if (!isThisDragging) e.currentTarget.style.borderColor = stage.color + "55"; }}
+                        onMouseLeave={e => { if (!isThisDragging) e.currentTarget.style.borderColor = C.border; }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          {!isMobile && (
+                            <span style={{
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              width: 14, height: 22, borderRadius: 3,
+                              color: stage.color, opacity: 0.45,
+                              cursor: isThisDragging ? "grabbing" : "grab",
+                            }} title="Drag to move">
+                              <GripVertical size={14} />
+                            </span>
+                          )}
+                          <Avatar name={lead.name} size={26} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</div>
+                            <div style={{ fontSize: 10, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.area}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
+                          <Score score={lead.score} />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setStageMenuFor(stageMenuFor === lead.id ? null : lead.id); }}
+                            style={{
+                              fontSize: 10, padding: "2px 8px", borderRadius: 4,
+                              background: stage.color + "22", color: stage.color,
+                              border: "none", cursor: "pointer", fontWeight: 700,
+                              display: "inline-flex", alignItems: "center", gap: 2,
+                            }}
+                            aria-label="Change stage"
+                          >
+                            Move <ChevronDown size={10} />
+                          </button>
+                          {stageMenuFor === lead.id && (
+                            <>
+                              <div onClick={(e) => { e.stopPropagation(); setStageMenuFor(null); }} style={{ position: "fixed", inset: 0, zIndex: 150 }} />
+                              <div style={{
+                                position: "absolute", top: "100%", right: 0, marginTop: 6,
+                                background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8,
+                                boxShadow: "0 8px 24px rgba(0,0,0,0.5)", zIndex: 151,
+                                padding: 4, minWidth: 160,
+                              }} onClick={(e) => e.stopPropagation()}>
+                                {STAGES.map(s => (
+                                  <button key={s.id}
+                                    onClick={(e) => { e.stopPropagation(); moveLeadToStage(lead.id, s.id); setStageMenuFor(null); }}
+                                    style={{
+                                      display: "flex", width: "100%", padding: "8px 10px",
+                                      background: s.id === stage.id ? C.bgHover : "transparent",
+                                      border: "none", color: s.id === stage.id ? C.teal : C.text,
+                                      fontSize: 12, cursor: "pointer", textAlign: "left", borderRadius: 6,
+                                      alignItems: "center", gap: 8, minHeight: 32,
+                                    }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
+                                    {s.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Score score={lead.score} />
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setStageMenuFor(stageMenuFor === lead.id ? null : lead.id); }}
-                          style={{
-                            fontSize: 10, padding: "2px 6px", borderRadius: 4,
-                            background: stage.color + "22", color: stage.color,
-                            border: "none", cursor: "pointer", fontWeight: 600,
-                          }}
-                          aria-label="Change stage"
-                        >
-                          Move ▾
-                        </button>
-                      </div>
-                      {stageMenuFor === lead.id && (
-                        <>
-                          <div onClick={(e) => { e.stopPropagation(); setStageMenuFor(null); }} style={{ position: "fixed", inset: 0, zIndex: 150 }} />
-                          <div style={{
-                            position: "absolute", marginTop: 6, background: C.bgCard,
-                            border: `1px solid ${C.border}`, borderRadius: 8,
-                            boxShadow: "0 8px 24px rgba(0,0,0,0.5)", zIndex: 151,
-                            padding: 4, minWidth: 160,
-                          }}
-                          onClick={(e) => e.stopPropagation()}>
-                            {STAGES.map(s => (
-                              <button key={s.id}
-                                onClick={(e) => { e.stopPropagation(); moveLeadToStage(lead.id, s.id); setStageMenuFor(null); }}
-                                style={{
-                                  display: "flex", width: "100%", padding: "8px 10px",
-                                  background: s.id === stage.id ? C.bgHover : "transparent",
-                                  border: "none", color: s.id === stage.id ? C.teal : C.text,
-                                  fontSize: 12, cursor: "pointer", textAlign: "left", borderRadius: 6,
-                                  alignItems: "center", gap: 8,
-                                }}>
-                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             );
@@ -2082,11 +2135,17 @@ export default function App() {
             {shown.map(n => {
               const NIcon = NOTIFICATION_ICONS[n.type] || Bell;
               const isUnread = !notifReads[n.id];
+              const handleClick = () => {
+                if (n.leadId) jumpToLead(n.leadId);
+                if (isUnread) markNotifRead(n.id);
+              };
               return (
-                <Card key={n.id} style={{
+                <Card key={n.id} onClick={handleClick} style={{
                   padding: 14,
                   borderLeft: `3px solid ${isUnread ? n.color : C.border}`,
                   background: isUnread ? C.bgCard : C.bg,
+                  cursor: "pointer",
+                  position: "relative",
                 }}>
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                     <div style={{
@@ -2104,17 +2163,13 @@ export default function App() {
                       <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>{n.text}</div>
                       <div style={{ display: "flex", gap: 12, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <span style={{ fontSize: 11, color: C.textDim }}>{n.time}</span>
-                        {n.leadId && (
-                          <button onClick={() => { jumpToLead(n.leadId); markNotifRead(n.id); }} style={{
-                            background: "none", border: "none", color: C.teal,
-                            fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0,
-                          }}>View lead →</button>
-                        )}
+                        {n.leadId && <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>View lead →</span>}
                         {isUnread && (
-                          <button onClick={() => markNotifRead(n.id)} style={{
+                          <button onClick={(e) => { e.stopPropagation(); markNotifRead(n.id); }} style={{
                             background: "none", border: "none", color: C.textMuted,
                             fontSize: 12, fontWeight: 500, cursor: "pointer", padding: 0,
-                          }}>Mark read</button>
+                            marginLeft: "auto",
+                          }}>Mark read only</button>
                         )}
                       </div>
                     </div>
@@ -2649,6 +2704,290 @@ export default function App() {
     );
   };
 
+  // ----- SITE PREVIEW (public-facing simulation) -----
+  const SitePreviewView = () => {
+    const agent = AGENTS.find(a => a.id === previewAgentId) || AGENTS[0];
+    const community = COMMUNITIES.find(c => c.id === previewCommunityId) || COMMUNITIES[0];
+    const matchedReport = REPORTS.find(r => r.title.toLowerCase().includes(community.area.toLowerCase().split(" ")[0])) || REPORTS[0];
+    const featured = LISTINGS.filter(L => L.community === community.name).slice(0, 4);
+    const subdomain = agent.website || `${agent.name.toLowerCase().replace(/[^a-z]+/g, "")}.triskope.io`;
+    const initials = agent.name.split(" ").map(n => n[0]).join("");
+
+    const submitPreviewForm = (e) => {
+      e.preventDefault();
+      if (!previewForm.name || !previewForm.email) {
+        setToast({ message: "Name and email are required on the public form", kind: "error" });
+        return;
+      }
+      setToast({ message: `Demo capture: a real lead for ${agent.name.split(" ")[0]} just came in.`, kind: "success" });
+      setPreviewForm({ name: "", email: "", phone: "", message: "" });
+    };
+
+    const previewInputStyle = {
+      width: "100%", padding: "10px 12px",
+      background: "#ffffff", border: "1px solid #d9dbe6", borderRadius: 8,
+      color: "#1a1a2e", fontSize: 14, outline: "none",
+    };
+    const previewLabelStyle = { display: "block", fontSize: 11, fontWeight: 700, color: "#55557a", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" };
+
+    return (
+      <div>
+        {/* Toolbar — admin controls (not part of the preview) */}
+        <Card style={{ marginBottom: 16, background: C.bgCard }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+            <Globe size={16} color={C.teal} />
+            <div style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>Public page preview</div>
+            <span style={{ fontSize: 11, color: C.textDim }}>
+              Simulating what a visitor sees on the agent's subdomain.
+            </span>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div>
+                <label style={{ ...previewLabelStyle, color: C.textDim, marginBottom: 4 }}>Agent</label>
+                <select value={previewAgentId} onChange={e => setPreviewAgentId(Number(e.target.value))} style={{ ...selectStyle(), minHeight: 36, fontSize: 12 }}>
+                  {AGENTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ ...previewLabelStyle, color: C.textDim, marginBottom: 4 }}>Community</label>
+                <select value={previewCommunityId} onChange={e => setPreviewCommunityId(Number(e.target.value))} style={{ ...selectStyle(), minHeight: 36, fontSize: 12 }}>
+                  {COMMUNITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* The simulated public page */}
+        <div style={{
+          background: "#f6f7fb", borderRadius: 14, overflow: "hidden",
+          border: `1px solid ${C.border}`,
+          fontFamily: "-apple-system, system-ui, sans-serif",
+          color: "#1a1a2e",
+        }}>
+          {/* Browser chrome */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 14px", background: "#e9eaf2",
+            borderBottom: "1px solid #d9dbe6",
+          }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: "#fa615c" }} />
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: "#fdbe40" }} />
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: "#34c84a" }} />
+            </div>
+            <div style={{
+              flex: 1, marginLeft: 12, padding: "6px 12px",
+              background: "#ffffff", borderRadius: 6,
+              fontSize: 12, color: "#55557a",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              border: "1px solid #d9dbe6",
+            }}>
+              https://{subdomain}/community/{community.slug}
+            </div>
+          </div>
+
+          {/* Agent header bar */}
+          <div style={{
+            background: "#ffffff", borderBottom: "1px solid #e2e3ec",
+            padding: "16px 24px",
+            display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: "50%",
+              background: `linear-gradient(135deg, #5eead4, #818cf8)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#0a0a14", fontSize: 14, fontWeight: 700,
+            }}>{initials}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 17, fontWeight: 700 }}>{agent.name}</div>
+              <div style={{ fontSize: 11, color: "#55557a" }}>{agent.plan} agent · Grand Strand specialist</div>
+            </div>
+            <nav style={{ display: isMobile ? "none" : "flex", gap: 20, fontSize: 13, color: "#55557a" }}>
+              <span>Communities</span>
+              <span>Listings</span>
+              <span>Market Reports</span>
+              <span>About</span>
+            </nav>
+            <button style={{
+              padding: "8px 14px", borderRadius: 8, border: "none",
+              background: "linear-gradient(135deg, #5eead4, #818cf8)",
+              color: "#0a0a14", fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}>Contact {agent.name.split(" ")[0]}</button>
+          </div>
+
+          {/* Hero */}
+          <div style={{
+            padding: "40px 24px 28px",
+            background: `linear-gradient(135deg, #f3f4fb 0%, #ecf6f5 100%)`,
+            borderBottom: "1px solid #e2e3ec",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, fontSize: 12, color: "#55557a" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 10px", borderRadius: 9999, background: "#5eead426", color: "#0d8b75", fontWeight: 700 }}>
+                {community.icon} {community.type} community
+              </span>
+              <span>·</span>
+              <span>{community.area}</span>
+            </div>
+            <h1 style={{ fontSize: isMobile ? 28 : 38, fontWeight: 800, margin: "0 0 10px", lineHeight: 1.15 }}>
+              {community.name}
+            </h1>
+            <p style={{ fontSize: 16, color: "#55557a", margin: "0 0 20px", maxWidth: 640, lineHeight: 1.55 }}>
+              Live listings, school zone overlays, and the latest market trends — straight from the MLS.
+              When a home you'd love hits the market, I'll know before it's public. Get on the list.
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button style={{
+                padding: "12px 18px", borderRadius: 8, border: "none",
+                background: "linear-gradient(135deg, #5eead4, #818cf8)",
+                color: "#0a0a14", fontSize: 14, fontWeight: 700, cursor: "pointer",
+              }}>Get the {community.name} report →</button>
+              <button style={{
+                padding: "12px 18px", borderRadius: 8,
+                background: "transparent", border: "1px solid #d9dbe6",
+                color: "#1a1a2e", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}>Browse listings</button>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div style={{
+            padding: "20px 24px", background: "#ffffff",
+            borderBottom: "1px solid #e2e3ec",
+            display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 16,
+          }}>
+            {[
+              { label: "Active listings", value: community.listings },
+              { label: "Avg price",       value: community.avgPrice },
+              { label: "30-day views",    value: community.views.toLocaleString() },
+              { label: "Avg days on market", value: matchedReport.dom },
+            ].map(s => (
+              <div key={s.label}>
+                <div style={{ fontSize: 11, color: "#55557a", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{s.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4, color: "#0d8b75" }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Featured listings */}
+          <div style={{ padding: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Featured listings in {community.name}</h2>
+              <span style={{ fontSize: 12, color: "#55557a" }}>{featured.length || 0} of {LISTINGS.filter(L => L.community === community.name).length} shown</span>
+            </div>
+            {featured.length === 0 ? (
+              <div style={{ padding: 30, textAlign: "center", color: "#55557a", border: "1px dashed #d9dbe6", borderRadius: 10, fontSize: 13 }}>
+                No public listings to display for this community in the demo data — pick another community above to see featured cards.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
+                {featured.map(L => (
+                  <div key={L.id} style={{
+                    background: "#ffffff", border: "1px solid #e2e3ec",
+                    borderRadius: 10, overflow: "hidden",
+                  }}>
+                    <div style={{
+                      height: 90,
+                      background: "linear-gradient(135deg, #5eead430, #818cf830, #a78bfa30)",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36,
+                    }}>{L.photo}</div>
+                    <div style={{ padding: 12 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: "#0d8b75" }}>{formatPrice(L.price)}</div>
+                      <div style={{ fontSize: 12, color: "#1a1a2e", marginTop: 2 }}>{L.address}</div>
+                      <div style={{ fontSize: 11, color: "#55557a", marginTop: 6 }}>
+                        {L.beds} bd · {L.baths} ba · {L.sqft.toLocaleString()} sqft
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Lead capture form */}
+          <div style={{
+            padding: "28px 24px", background: "#ffffff",
+            borderTop: "1px solid #e2e3ec",
+          }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: 24, alignItems: "start" }}>
+              <div>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#0d8b75", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
+                  Get the full {community.name} report
+                </div>
+                <h3 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 10px" }}>I'll send you the inside view.</h3>
+                <p style={{ fontSize: 14, color: "#55557a", lineHeight: 1.55, margin: "0 0 14px" }}>
+                  Pricing trends, recent comps, what's moving fast, what's sitting,
+                  and three off-market homes I think you'd love. No spam — just one email
+                  from {agent.name.split(" ")[0]} once a month.
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "#f6f7fb", borderRadius: 10 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #5eead4, #818cf8)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#0a0a14", fontSize: 12, fontWeight: 700,
+                  }}>{initials}</div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{agent.name}</div>
+                    <div style={{ fontSize: 11, color: "#55557a" }}>Licensed agent · Grand Strand</div>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={submitPreviewForm} style={{
+                background: "#f6f7fb", borderRadius: 12, padding: 18,
+                border: "1px solid #e2e3ec",
+              }}>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={previewLabelStyle}>Your name</label>
+                  <input style={previewInputStyle} value={previewForm.name}
+                    onChange={e => setPreviewForm({ ...previewForm, name: e.target.value })}
+                    placeholder="Jane Smith" />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={previewLabelStyle}>Email</label>
+                  <input style={previewInputStyle} type="email" value={previewForm.email}
+                    onChange={e => setPreviewForm({ ...previewForm, email: e.target.value })}
+                    placeholder="jane@example.com" />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={previewLabelStyle}>Phone (optional)</label>
+                  <input style={previewInputStyle} value={previewForm.phone}
+                    onChange={e => setPreviewForm({ ...previewForm, phone: e.target.value })}
+                    placeholder="(843) 555-0100" />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={previewLabelStyle}>Anything specific?</label>
+                  <textarea style={{ ...previewInputStyle, minHeight: 70, resize: "vertical", fontFamily: "inherit" }}
+                    value={previewForm.message}
+                    onChange={e => setPreviewForm({ ...previewForm, message: e.target.value })}
+                    placeholder="Looking for a 3-bedroom in a golf community under $500K..." />
+                </div>
+                <button type="submit" style={{
+                  width: "100%", padding: "12px 16px", borderRadius: 8, border: "none",
+                  background: "linear-gradient(135deg, #5eead4, #818cf8)",
+                  color: "#0a0a14", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                }}>Send me the report</button>
+                <div style={{ fontSize: 10, color: "#55557a", textAlign: "center", marginTop: 8 }}>
+                  By submitting, you agree to be contacted by {agent.name.split(" ")[0]}.
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            padding: "16px 24px", background: "#0a0a14",
+            color: "#8888a8", fontSize: 11,
+            display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+          }}>
+            <div>© {new Date().getFullYear()} {agent.name} · Powered by <span style={{ color: "#5eead4", fontWeight: 700 }}>triskope</span></div>
+            <div>Equal Housing Opportunity · {community.area}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderView = () => {
     switch (view) {
       case "inbox": return <InboxView />;
@@ -2658,6 +2997,7 @@ export default function App() {
       case "listings": return <ListingsView />;
       case "reports": return <ReportsView />;
       case "communities": return <CommunitiesView />;
+      case "preview": return <SitePreviewView />;
       case "agents": return <AgentsView />;
       case "ai": return <AIView />;
       case "billing": return <PlansView />;
