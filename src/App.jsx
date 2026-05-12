@@ -10,7 +10,7 @@ import {
   Layers, GripVertical, ArrowUpDown, ChevronDown, CalendarPlus, Trash2, CheckCircle2,
   CalendarDays, Building2, BedDouble, Bath, AlertCircle, CheckCheck, ChevronUp,
   Filter as FilterIcon, Bookmark, Lightbulb, LogOut, Loader2,
-  Send, UserPlus, AtSign, Hash
+  Send, UserPlus, AtSign, Hash, Bot, Lock
 } from "lucide-react";
 
 const C = {
@@ -598,6 +598,132 @@ const ChartTooltip = ({ active, payload, label, valueFormatter, labelFormatter }
     </div>
   );
 };
+
+// ============================================================
+// AI Assistant — simulated reply generator
+// ============================================================
+
+function pickReplyVariant(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function summarizeReply(ctx) {
+  const hot = ctx.leads.filter(l => l.status === "hot");
+  const fresh = ctx.leads.filter(l => l.status === "new");
+  const overdue = ctx.taskBuckets?.overdue?.length || 0;
+  const dueToday = ctx.taskBuckets?.today?.length || 0;
+  return [
+    `Here's the rundown across your book this week:`,
+    ``,
+    `• ${hot.length} hot leads — top priorities: ${hot.slice(0, 2).map(l => l.name).join(" and ") || "none right now"}.`,
+    `• ${fresh.length} fresh leads sitting in 'new' status, waiting on first outreach.`,
+    `• ${overdue} overdue follow-ups, ${dueToday} due today.`,
+    ``,
+    pickReplyVariant([
+      `Where do you want to start? I can draft a touch-base email for ${hot[0]?.name?.split(" ")[0] || "your top lead"}, or surface the new leads with a suggested first message.`,
+      `Want me to draft outreach for the new leads, or focus on closing one of the hot ones?`,
+      `Let me know which lead to dig into and I'll pull up everything I know.`,
+    ]),
+  ].join("\n");
+}
+
+function draftReply(prompt, ctx) {
+  const target = ctx.selectedLead
+    || ctx.leads.find(l => prompt.toLowerCase().includes(l.name.toLowerCase()))
+    || ctx.leads.find(l => l.status === "hot")
+    || ctx.leads[0];
+  if (!target) return "Open a lead's profile first — that way I can write something specific instead of generic.";
+  const first = target.name.split(" ")[0];
+  const body = pickReplyVariant([
+    `Hi ${first},\n\nWanted to circle back on ${target.area || "your search"}. I just pulled three places in your range that I think are worth a look — one of them is freshly listed and priced to move. Want me to send the full listing packets, or set up a same-day tour?\n\n— ${ctx.profile?.display_name?.split(" ")[0] || "Sarah"}`,
+    `Hi ${first},\n\nQuick update — the ${target.area || "Grand Strand"} market shifted this week. ${target.budget ? "Two listings just hit in the " + target.budget + " range" : "A couple of fresh listings hit in your range"}. Worth a 10-minute call this week? I can shortlist three for you to consider.\n\n— ${ctx.profile?.display_name?.split(" ")[0] || "Sarah"}`,
+    `Hi ${first},\n\nThinking about you. I know we talked about ${target.interest || "your move"} — wanted to check in and see if anything has shifted on your side. ${target.tags?.includes("pre-approved") ? "You're still in great position with pre-approval, " : ""}happy to send fresh comps anytime.\n\n— ${ctx.profile?.display_name?.split(" ")[0] || "Sarah"}`,
+  ]);
+  return [
+    `Draft for ${target.name}:`,
+    ``,
+    body,
+    ``,
+    `Want me to refine the tone, make it shorter, or send it now?`,
+  ].join("\n");
+}
+
+function hotLeadsReply(ctx) {
+  const hot = ctx.leads.filter(l => l.status === "hot").sort((a, b) => b.score - a.score);
+  if (hot.length === 0) return "You don't have anyone hot right now. Your warmest leads are " + ctx.leads.filter(l => l.status === "nurture").slice(0, 2).map(l => l.name).join(" and ") + ".";
+  const lines = [`Three people I'd put first today:`, ``];
+  hot.slice(0, 3).forEach((l, i) => {
+    lines.push(`${i + 1}. ${l.name} — score ${l.score}, ${l.area}. ${l.aiNotes?.split(".")[0] || ""}.`);
+  });
+  lines.push("");
+  lines.push("Want me to draft outreach for any of them?");
+  return lines.join("\n");
+}
+
+function marketReply(ctx, prompt) {
+  const area = ctx.leads.find(l => prompt.toLowerCase().includes((l.area || "").toLowerCase()))?.area
+            || ctx.selectedLead?.area
+            || pickReplyVariant(["Myrtle Beach", "Pawleys Island", "North Myrtle Beach"]);
+  return [
+    `${area} market in one paragraph:`,
+    ``,
+    `Median price is up ${pickReplyVariant(["5.2%", "4.6%", "3.8%"])} year-over-year. Inventory is ${pickReplyVariant(["tight at under 4 months of supply", "balanced — about 4-5 months", "climbing modestly"])}. Days on market is ${pickReplyVariant(["dropping fast", "down 12% vs. last quarter", "the tightest it's been since fall"])}, especially in the sub-$500K segment.`,
+    ``,
+    `Buyer behavior to know:`,
+    `• Out-of-state relocations are now the biggest buyer pool, with cash offers up materially.`,
+    `• Sellers pricing within 2% of market are still getting weekend offers.`,
+    `• Want a full one-pager I can send to a client? Run AI Tools → Market Report Generator.`,
+  ].join("\n");
+}
+
+function taskReply(prompt, ctx) {
+  const target = ctx.selectedLead || ctx.leads.find(l => l.status === "hot") || ctx.leads[0];
+  const when = /tomorrow/i.test(prompt) ? "tomorrow"
+            : /friday/i.test(prompt)    ? "Friday"
+            : /weekend/i.test(prompt)   ? "Saturday"
+            : "tomorrow";
+  return [
+    `Got it. I can stage a follow-up for ${target?.name || "this lead"} for ${when}.`,
+    ``,
+    `Suggested task:`,
+    `• "Call ${target?.name?.split(" ")[0] || "lead"} to confirm tour timing + answer financing questions"`,
+    `• Due ${when}`,
+    `• Priority: ${target?.status === "hot" ? "high" : "normal"}`,
+    ``,
+    `Tap the lead's detail page → Follow-ups to schedule, or tell me to do it and I'll add it directly.`,
+  ].join("\n");
+}
+
+function scoreReply(prompt, ctx) {
+  const target = ctx.selectedLead || ctx.leads.find(l => l.status === "hot") || ctx.leads[0];
+  if (!target) return "I don't have a lead picked. Open one and ask again — I'll score them with real signals.";
+  return [
+    `Quick read on ${target.name}:`,
+    ``,
+    `• Engagement score ${target.score}/100 — ${target.score >= 80 ? "very strong" : target.score >= 60 ? "warm" : target.score >= 40 ? "needs nurturing" : "cold"}.`,
+    `• ${target.tags?.includes("pre-approved") ? "Pre-approval is on file." : "Pre-approval not yet confirmed — financing is the next conversation."}`,
+    `• ${(target.activity?.filter(a => a.type === "view") || []).length} recent listing views.`,
+    ``,
+    `Want the full structured analysis with the recommendation card? Run AI Tools → Lead Score Analysis from their detail page.`,
+  ].join("\n");
+}
+
+function defaultReply(prompt, ctx) {
+  return pickReplyVariant([
+    `I can help with summarizing your leads, drafting outreach, pulling up hot leads, market questions, or scheduling follow-ups. What's the priority right now?`,
+    `I'm best at four things today: a daily summary, drafting messages to a specific lead, telling you which leads to call next, and market snapshots. Want one of those?`,
+    `Tell me what you're trying to do — close a deal, write a message, find a lead, understand the market — and I'll get you there.`,
+  ]);
+}
+
+function generateAssistantReply(prompt, ctx) {
+  const p = prompt.toLowerCase();
+  if (/summar|recap|what.?happened|rundown|today|this week/.test(p)) return summarizeReply(ctx);
+  if (/which lead|hot lead|top lead|priority|who should/.test(p))  return hotLeadsReply(ctx);
+  if (/draft|write|message|email|follow.?up|reply/.test(p))         return draftReply(prompt, ctx);
+  if (/market|trend|inventory|price|days on market|appreciat/.test(p)) return marketReply(ctx, prompt);
+  if (/schedul|task|remind|call .* (tomorrow|friday|weekend)/.test(p)) return taskReply(prompt, ctx);
+  if (/score|analy|how is|read on/.test(p))                          return scoreReply(prompt, ctx);
+  return defaultReply(prompt, ctx);
+}
 
 // ============================================================
 // AI document components — render structured AI output as
@@ -1242,6 +1368,15 @@ export default function App() {
   const [previewCommunityId, setPreviewCommunityId] = useState(COMMUNITIES[0].id);
   const [previewForm, setPreviewForm] = useState({ name: "", email: "", phone: "", message: "" });
 
+  // AI Assistant
+  const [demoPlan, setDemoPlan] = useState("pro"); // starter | pro | enterprise (demo toggle until real billing is wired)
+  const [assistantMessages, setAssistantMessages] = useState([]); // { id, role: "user"|"assistant", text, ts }
+  const [assistantDraft, setAssistantDraft] = useState("");
+  const [assistantStreamingId, setAssistantStreamingId] = useState(null);
+  const [assistantStreamTarget, setAssistantStreamTarget] = useState("");
+  const assistantStreamTimer = useRef(null);
+  const assistantScrollRef = useRef(null);
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -1397,6 +1532,57 @@ export default function App() {
     // print — the @media print stylesheet hides everything except .tk-print.
     window.print();
   };
+
+  // ----- AI Assistant helpers -----
+  const planLimits = { starter: 0, pro: 25, enterprise: Infinity };
+  const queriesUsed = assistantMessages.filter(m => m.role === "user").length;
+  const queryCap = planLimits[demoPlan] ?? 0;
+  const queriesLeft = queryCap === Infinity ? Infinity : Math.max(0, queryCap - queriesUsed);
+  const hasAssistantAccess = demoPlan === "pro" || demoPlan === "enterprise";
+
+  const sendToAssistant = (text) => {
+    const prompt = (text || "").trim();
+    if (!prompt) return;
+    if (!hasAssistantAccess) return;
+    if (queriesLeft === 0) { setToast({ message: "You've hit your daily Assistant cap. Upgrade to Enterprise for unlimited.", kind: "info" }); return; }
+
+    const userMsg = { id: "u-" + Date.now(), role: "user", text: prompt, ts: new Date().toISOString() };
+    const ctx = { leads, selectedLead, taskBuckets, profile };
+    const reply = generateAssistantReply(prompt, ctx);
+    const assistantId = "a-" + Date.now();
+    const assistantMsg = { id: assistantId, role: "assistant", text: "", ts: new Date().toISOString() };
+
+    setAssistantMessages(prev => [...prev, userMsg, assistantMsg]);
+    setAssistantDraft("");
+    setAssistantStreamingId(assistantId);
+    setAssistantStreamTarget(reply);
+  };
+
+  // Stream characters into the latest assistant message
+  useEffect(() => {
+    if (!assistantStreamingId || !assistantStreamTarget) return;
+    let i = 0;
+    assistantStreamTimer.current = setInterval(() => {
+      i += 3;
+      if (i >= assistantStreamTarget.length) {
+        setAssistantMessages(prev => prev.map(m => m.id === assistantStreamingId ? { ...m, text: assistantStreamTarget } : m));
+        setAssistantStreamingId(null);
+        setAssistantStreamTarget("");
+        clearInterval(assistantStreamTimer.current);
+      } else {
+        const chunk = assistantStreamTarget.slice(0, i);
+        setAssistantMessages(prev => prev.map(m => m.id === assistantStreamingId ? { ...m, text: chunk } : m));
+      }
+    }, 12);
+    return () => clearInterval(assistantStreamTimer.current);
+  }, [assistantStreamingId, assistantStreamTarget]);
+
+  // Auto-scroll the assistant thread to the bottom on new messages
+  useEffect(() => {
+    if (assistantScrollRef.current) {
+      assistantScrollRef.current.scrollTop = assistantScrollRef.current.scrollHeight;
+    }
+  }, [assistantMessages.length, assistantStreamTarget]);
 
   const skipStreaming = () => {
     if (aiStreaming && aiOut && typeof aiOut === "string") {
@@ -1647,6 +1833,7 @@ export default function App() {
     { id: "communities", label: "Communities", icon: Map },
     { id: "preview", label: "Site Preview", icon: Globe },
     { id: "agents", label: "Agents", icon: Award },
+    { id: "assistant", label: "AI Assistant", icon: Bot, pro: true },
     { id: "ai", label: "AI Tools", icon: Brain },
     { id: "billing", label: "Plans", icon: Settings },
   ];
@@ -3642,6 +3829,283 @@ export default function App() {
     );
   };
 
+  // ----- AI ASSISTANT VIEW -----
+  const AssistantView = () => {
+    if (!hasAssistantAccess) {
+      return <AssistantLocked />;
+    }
+
+    const suggestions = [
+      "Summarize what's happened with my leads this week",
+      "Which leads should I call today?",
+      "Draft a follow-up to my hottest lead",
+      "What's moving in the Pawleys Island market?",
+      "Schedule a follow-up with Karen Lee for tomorrow",
+    ];
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - " + (isMobile ? 96 : 64) + "px)" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#0a0a14",
+          }}>
+            <Bot size={22} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: C.text, margin: 0 }}>AI Assistant</h1>
+            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+              Knows your CRM. Drafts messages. Surfaces priorities. Never sleeps.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <Badge color={demoPlan === "enterprise" ? C.purple : C.teal}>
+              {demoPlan === "enterprise" ? "Enterprise" : "Pro"} plan
+            </Badge>
+            <span style={{ fontSize: 11, color: C.textDim }}>
+              {queryCap === Infinity ? "Unlimited today" : `${queriesUsed}/${queryCap} today`}
+            </span>
+            <select value={demoPlan} onChange={e => setDemoPlan(e.target.value)} style={{
+              ...selectStyle(), minHeight: 32, fontSize: 11, padding: "6px 28px 6px 10px",
+            }} title="Demo: switch plan to preview locked state">
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Chat surface */}
+        <div ref={assistantScrollRef} style={{
+          flex: 1, overflowY: "auto",
+          background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 14,
+          padding: isMobile ? 12 : 16, minHeight: 0,
+        }}>
+          {assistantMessages.length === 0 ? (
+            <div style={{ padding: isMobile ? 12 : 24, textAlign: "center" }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: 18, margin: "8px auto 16px",
+                background: `linear-gradient(135deg, ${C.teal}22, ${C.blue}22, ${C.purple}22)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Bot size={32} color={C.teal} />
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                How can I help today{profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}?
+              </div>
+              <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, maxWidth: 440, margin: "0 auto 20px", lineHeight: 1.5 }}>
+                I know your leads, listings, and market. Ask me anything, or pick a starter prompt.
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+                {suggestions.map(s => (
+                  <button key={s} onClick={() => sendToAssistant(s)} style={{
+                    padding: "10px 14px", borderRadius: 9999,
+                    background: C.bg, border: `1px solid ${C.border}`,
+                    color: C.text, fontSize: 12, cursor: "pointer", fontWeight: 500,
+                    transition: "background 0.15s ease, border-color 0.15s ease",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.bgHover; e.currentTarget.style.borderColor = C.teal + "55"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = C.bg; e.currentTarget.style.borderColor = C.border; }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {assistantMessages.map((m) => {
+                const isUser = m.role === "user";
+                const stillStreaming = assistantStreamingId === m.id;
+                return (
+                  <div key={m.id} style={{
+                    display: "flex", gap: 10,
+                    flexDirection: isUser ? "row-reverse" : "row",
+                    alignItems: "flex-start",
+                  }}>
+                    {isUser ? (
+                      <Avatar name={profile?.display_name || session?.user?.email || "You"} size={28} color={C.teal} />
+                    ) : (
+                      <div style={{
+                        width: 28, height: 28, borderRadius: "50%",
+                        background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#0a0a14", flexShrink: 0,
+                      }}>
+                        <Bot size={14} />
+                      </div>
+                    )}
+                    <div style={{
+                      maxWidth: isMobile ? "85%" : "75%",
+                      background: isUser ? `linear-gradient(135deg, ${C.teal}, ${C.blue})` : C.bg,
+                      color: isUser ? "#0a0a14" : C.text,
+                      border: isUser ? "none" : `1px solid ${C.border}`,
+                      borderRadius: isUser ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                      padding: "10px 14px",
+                      fontSize: 13.5, lineHeight: 1.55, whiteSpace: "pre-wrap",
+                    }}>
+                      {m.text || (stillStreaming && <span style={{ color: C.textDim }}>thinking…</span>)}
+                      {stillStreaming && m.text && <span className="tk-cursor" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Compose */}
+        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+          <input
+            type="text"
+            value={assistantDraft}
+            onChange={e => setAssistantDraft(e.target.value)}
+            placeholder={
+              hasAssistantAccess
+                ? (selectedLead ? `Ask anything about ${selectedLead.name} or your pipeline…` : "Ask anything about your CRM…")
+                : "Upgrade to Pro to chat with the Assistant"
+            }
+            disabled={!hasAssistantAccess || assistantStreamingId}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) sendToAssistant(assistantDraft); }}
+            style={{
+              flex: 1, padding: "12px 16px",
+              background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10,
+              color: C.text, fontSize: 14, outline: "none",
+              minHeight: 48,
+              opacity: hasAssistantAccess ? 1 : 0.5,
+            }}
+          />
+          <button
+            onClick={() => sendToAssistant(assistantDraft)}
+            disabled={!hasAssistantAccess || !assistantDraft.trim() || assistantStreamingId}
+            style={{
+              padding: "0 18px", borderRadius: 10, border: "none",
+              background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`,
+              color: "#0a0a14", fontWeight: 700, fontSize: 14,
+              cursor: (assistantDraft.trim() && hasAssistantAccess && !assistantStreamingId) ? "pointer" : "not-allowed",
+              opacity: (assistantDraft.trim() && hasAssistantAccess && !assistantStreamingId) ? 1 : 0.5,
+              display: "flex", alignItems: "center", gap: 6, minHeight: 48,
+            }}
+          >
+            <Send size={14} /> Send
+          </button>
+        </div>
+        <div style={{ fontSize: 10, color: C.textDim, marginTop: 8, textAlign: "center" }}>
+          The Assistant uses your CRM context. Simulated responses for now — swap to real OpenAI / Claude via an Edge Function when you're ready.
+        </div>
+      </div>
+    );
+  };
+
+  const AssistantLocked = () => (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: C.bg, border: `1px solid ${C.border}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: C.textDim,
+        }}>
+          <Lock size={20} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, color: C.text, margin: 0 }}>AI Assistant</h1>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: "2px 0 0" }}>Available on the Pro and Enterprise plans.</p>
+        </div>
+        <select value={demoPlan} onChange={e => setDemoPlan(e.target.value)} style={{
+          ...selectStyle(), minHeight: 32, fontSize: 11, padding: "6px 28px 6px 10px",
+        }} title="Demo: switch plan">
+          <option value="starter">Starter (demo)</option>
+          <option value="pro">Pro (demo)</option>
+          <option value="enterprise">Enterprise (demo)</option>
+        </select>
+      </div>
+
+      <Card style={{
+        padding: isMobile ? 20 : 32,
+        background: `linear-gradient(135deg, ${C.bgCard} 0%, ${C.bgCard} 60%, ${C.purple}12 100%)`,
+        borderColor: C.borderLight,
+      }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 20 : 32, alignItems: "center" }}>
+          <div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 9999, background: C.purple + "20", color: C.purple, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
+              <Sparkles size={12} /> Pro feature
+            </div>
+            <h2 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: C.text, margin: "0 0 10px", lineHeight: 1.2 }}>
+              An AI that actually knows your business.
+            </h2>
+            <p style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.6, margin: "0 0 18px" }}>
+              Ask the Assistant anything: who to call today, how to respond to a tough buyer email,
+              what the Pawleys Island market is doing this week. It reads your leads, listings,
+              activity, and tasks — and writes in your voice.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+              {[
+                "Daily priority briefings — who needs you, why",
+                "One-click drafts for follow-ups, replies, and re-engagement",
+                "Market answers grounded in live MLS data",
+                "Auto-summarized lead activity timelines",
+                "Schedule, classify, and triage tasks by voice or text",
+              ].map(f => (
+                <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: C.text }}>
+                  <Check size={14} color={C.teal} style={{ marginTop: 3, flexShrink: 0 }} />
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={() => setView("billing")} style={btnPrimary()}>
+                <Sparkles size={14} /> See Pro pricing
+              </button>
+              <button onClick={() => setDemoPlan("pro")} style={{
+                ...aiActionBtn(false), background: C.bg,
+              }}>
+                <Bot size={14} /> Demo it now
+              </button>
+            </div>
+          </div>
+          <div style={{
+            background: C.bg, borderRadius: 14, padding: 16,
+            border: `1px solid ${C.border}`,
+            display: "flex", flexDirection: "column", gap: 10,
+            position: "relative",
+            opacity: 0.92,
+          }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <Avatar name="You" size={24} color={C.teal} />
+              <div style={{ background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", padding: "8px 12px", borderRadius: "10px 10px 4px 10px", fontSize: 12, fontWeight: 500 }}>
+                Which leads should I call today?
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <div style={{ width: 24, height: 24, borderRadius: "50%", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#0a0a14", flexShrink: 0 }}>
+                <Bot size={12} />
+              </div>
+              <div style={{ background: C.bgCard, color: C.text, padding: "8px 12px", borderRadius: "10px 10px 10px 4px", fontSize: 12, lineHeight: 1.5, border: `1px solid ${C.border}` }}>
+                Three people I'd put first: <strong>Karen Lee</strong> (toured 142 Springs Saturday, ready to offer),
+                <strong> Robert Williams</strong> (4 visits to your market report this week, pre-approved),
+                and <strong>the Fosters</strong> (Austin tech couple, 30-day timeline). Want me to draft outreach for any of them?
+              </div>
+            </div>
+            <div style={{
+              position: "absolute", inset: 0,
+              background: `linear-gradient(180deg, transparent 30%, ${C.bgCard} 100%)`,
+              pointerEvents: "none", borderRadius: 14,
+            }} />
+            <div style={{
+              position: "absolute", left: 0, right: 0, bottom: 16, textAlign: "center",
+              fontSize: 11, color: C.textDim,
+            }}>
+              Sample exchange. Upgrade to unlock.
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+
   const renderView = () => {
     switch (view) {
       case "inbox": return <InboxView />;
@@ -3653,6 +4117,7 @@ export default function App() {
       case "communities": return <CommunitiesView />;
       case "preview": return <SitePreviewView />;
       case "agents": return <AgentsView />;
+      case "assistant": return <AssistantView />;
       case "ai": return <AIView />;
       case "billing": return <PlansView />;
       default: return <Dashboard />;
@@ -3860,6 +4325,19 @@ export default function App() {
                     background: C.red, color: "#fff", fontSize: 10, fontWeight: 700,
                     minWidth: 18, textAlign: "center",
                   }}>{unreadNotifs}</span>
+                )}
+                {item.pro && !hasAssistantAccess && (
+                  <span style={{
+                    padding: "1px 7px", borderRadius: 9999,
+                    background: C.purple + "22", color: C.purple,
+                    fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}>Pro</span>
+                )}
+                {item.pro && hasAssistantAccess && demoPlan === "enterprise" && (
+                  <span style={{
+                    width: 6, height: 6, borderRadius: 3, background: C.teal,
+                  }} />
                 )}
               </button>
             );
