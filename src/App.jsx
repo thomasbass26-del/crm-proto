@@ -98,11 +98,36 @@ const TriskopeLogo = ({ size = 36, light = true }) => {
 // ============================================================
 
 const AGENTS = [
-  { id: 1, name: "Sarah Mitchell", plan: "Pro", leads: 47, closings: 12, revenue: 284000, website: "sarahmitchell.triskope.io", reports: 8, communities: 5 },
-  { id: 2, name: "James Parker", plan: "Enterprise", leads: 63, closings: 18, revenue: 412000, website: "jamesparker.triskope.io", reports: 12, communities: 8 },
-  { id: 3, name: "Lisa Chen", plan: "Starter", leads: 22, closings: 5, revenue: 98000, website: "lisachen.triskope.io", reports: 3, communities: 2 },
-  { id: 4, name: "Marcus Johnson", plan: "Pro", leads: 38, closings: 9, revenue: 195000, website: "marcusjohnson.triskope.io", reports: 6, communities: 4 },
-  { id: 5, name: "Amy Rodriguez", plan: "Pro", leads: 15, closings: 2, revenue: 45000, website: "amyrodriguez.triskope.io", reports: 4, communities: 3 },
+  { id: 1, name: "Sarah Mitchell",  plan: "Pro",        leads: 47, closings: 12, revenue: 284000, website: "sarahmitchell.triskope.io",  reports: 8,  communities: 5,
+    email: "sarah@triskope.io",   phone: "(843) 555-0142", address: "1700 Ocean Blvd, Suite 200, Myrtle Beach, SC 29577",
+    signupDate: "2025-08-14", license: "SC RE #94821",  brokerage: "Coastal Premier Real Estate",
+    paymentMethod: { brand: "Visa",       last4: "4242", expMonth: 8, expYear: 28 },
+    monthlyCost: 99, status: "active", nextBillingDays: 12,
+  },
+  { id: 2, name: "James Parker",    plan: "Enterprise", leads: 63, closings: 18, revenue: 412000, website: "jamesparker.triskope.io",    reports: 12, communities: 8,
+    email: "james@triskope.io",   phone: "(843) 555-0287", address: "44 Beach Bridge Rd, North Myrtle Beach, SC 29582",
+    signupDate: "2025-04-22", license: "SC RE #88102",  brokerage: "Parker & Associates Realty",
+    paymentMethod: { brand: "Mastercard", last4: "8814", expMonth: 4, expYear: 27 },
+    monthlyCost: 199, status: "active", nextBillingDays: 6,
+  },
+  { id: 3, name: "Lisa Chen",       plan: "Starter",    leads: 22, closings: 5,  revenue: 98000,  website: "lisachen.triskope.io",       reports: 3,  communities: 2,
+    email: "lisa@triskope.io",    phone: "(843) 555-0319", address: "207 Boardwalk Drive, Market Common, Myrtle Beach, SC 29577",
+    signupDate: "2025-11-03", license: "SC RE #99417",  brokerage: "Independent",
+    paymentMethod: { brand: "Visa",       last4: "1183", expMonth: 11, expYear: 26 },
+    monthlyCost: 49,  status: "active", nextBillingDays: 19,
+  },
+  { id: 4, name: "Marcus Johnson",  plan: "Pro",        leads: 38, closings: 9,  revenue: 195000, website: "marcusjohnson.triskope.io",  reports: 6,  communities: 4,
+    email: "marcus@triskope.io",  phone: "(843) 555-0451", address: "415 Cypress Way, Carolina Forest, Myrtle Beach, SC 29579",
+    signupDate: "2025-09-09", license: "SC RE #87623",  brokerage: "Grand Strand Properties",
+    paymentMethod: { brand: "Amex",       last4: "1006", expMonth: 7,  expYear: 27 },
+    monthlyCost: 99,  status: "active", nextBillingDays: 3,
+  },
+  { id: 5, name: "Amy Rodriguez",   plan: "Pro",        leads: 15, closings: 2,  revenue: 45000,  website: "amyrodriguez.triskope.io",   reports: 4,  communities: 3,
+    email: "amy@triskope.io",     phone: "(843) 555-0598", address: "92 Plantation Dr, Murrells Inlet, SC 29576",
+    signupDate: "2026-02-18", license: "SC RE #102558", brokerage: "Murrells Inlet Realty Group",
+    paymentMethod: { brand: "Visa",       last4: "9020", expMonth: 2,  expYear: 28 },
+    monthlyCost: 99,  status: "past_due", nextBillingDays: -4,
+  },
 ];
 
 // Leads are fetched from Supabase at runtime; see useEffect in App below.
@@ -1446,6 +1471,9 @@ export default function App() {
 
   // Communities detail
   const [selectedCommunity, setSelectedCommunity] = useState(null);
+
+  // Agent detail
+  const [selectedAgent, setSelectedAgent] = useState(null);
 
   // AI Assistant
   const [demoPlan, setDemoPlan] = useState("pro"); // starter | pro | enterprise (demo toggle until real billing is wired)
@@ -3215,32 +3243,406 @@ export default function App() {
   };
 
   // ----- AGENTS -----
-  const AgentsView = () => (
-    <div>
-      <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Subscribing Agents</h1>
-      <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>Each agent gets a branded subdomain powered by triskope</p>
-      <div style={gridCols(isMobile, 340)}>
-        {AGENTS.map(a => (
-          <Card key={a.id} hover>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <Avatar name={a.name} size={48} color={a.plan === "Enterprise" ? C.purple : a.plan === "Pro" ? C.blue : C.teal} />
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: 0 }}>{a.name}</h3>
-                <Badge color={a.plan === "Enterprise" ? C.purple : a.plan === "Pro" ? C.blue : C.teal}>{a.plan}</Badge>
+  // Helpers used by both agent grid + detail
+  const planColor = (plan) => plan === "Enterprise" ? C.purple : plan === "Pro" ? C.blue : C.teal;
+  const accessStatusMeta = (s) => {
+    switch (s) {
+      case "active":    return { label: "Active",         color: C.green };
+      case "past_due":  return { label: "Past due",       color: C.amber };
+      case "suspended": return { label: "Suspended",      color: C.red };
+      case "canceled":  return { label: "Canceled",       color: C.textDim };
+      default:          return { label: s || "Unknown",   color: C.textDim };
+    }
+  };
+
+  const AgentCard = ({ a }) => {
+    const status = accessStatusMeta(a.status);
+    const color = planColor(a.plan);
+    return (
+      <div
+        onClick={() => setSelectedAgent(a)}
+        style={{
+          background: C.bgCard, border: `1px solid ${C.border}`,
+          borderRadius: 12, padding: 18, cursor: "pointer",
+          transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = color + "55"; e.currentTarget.style.boxShadow = `0 12px 28px ${color}15`; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = "none"; }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+          <Avatar name={a.name} size={56} color={color} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: C.text, margin: 0, lineHeight: 1.2 }}>{a.name}</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+              <Badge color={color}>{a.plan}</Badge>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, color: status.color, fontWeight: 600,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: 3, background: status.color }} />
+                {status.label}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div style={urlBadge()}><Globe size={12} /> {a.website}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, fontSize: 12 }}>
+          <div><div style={{ color: C.textDim, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Leads</div><div style={{ color: C.text, fontWeight: 700, fontSize: 15, marginTop: 2 }}>{a.leads}</div></div>
+          <div><div style={{ color: C.textDim, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Closings</div><div style={{ color: C.text, fontWeight: 700, fontSize: 15, marginTop: 2 }}>{a.closings}</div></div>
+          <div><div style={{ color: C.textDim, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Reports</div><div style={{ color: C.text, fontWeight: 700, fontSize: 15, marginTop: 2 }}>{a.reports}</div></div>
+          <div><div style={{ color: C.textDim, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Revenue</div><div style={{ color: C.gold, fontWeight: 700, fontSize: 15, marginTop: 2 }}>${(a.revenue / 1000).toFixed(0)}K</div></div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, marginTop: 12, borderTop: `1px solid ${C.border}` }}>
+          <span style={{ fontSize: 11, color: C.textMuted }}>
+            ${a.monthlyCost}/mo · since {new Date(a.signupDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+          </span>
+          <span style={{ fontSize: 11, color: color, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>View →</span>
+        </div>
+      </div>
+    );
+  };
+
+  const AgentDetail = ({ agent }) => {
+    const status = accessStatusMeta(agent.status);
+    const color = planColor(agent.plan);
+    const agentLeads = leads.filter(l => l.agent === agent.name);
+    const agentListings = LISTINGS.filter(L => L.listing_agent === agent.id);
+    const agentCommunities = COMMUNITIES.filter(c => c.agent === agent.name);
+    const avgDealSize = agent.closings > 0 ? Math.round(agent.revenue / agent.closings) : 0;
+    const conversion = agent.leads > 0 ? ((agent.closings / agent.leads) * 100).toFixed(1) : "0.0";
+    const memberMonths = Math.max(1, Math.round((Date.now() - new Date(agent.signupDate).getTime()) / (1000 * 60 * 60 * 24 * 30)));
+    const ltv = memberMonths * agent.monthlyCost;
+    const nextBillingDate = new Date(Date.now() + agent.nextBillingDays * 24 * 60 * 60 * 1000);
+
+    // Mock recent invoices — deterministic from signup date
+    const invoices = [];
+    const signupDate = new Date(agent.signupDate);
+    for (let i = 0; i < Math.min(memberMonths, 6); i++) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      d.setDate(signupDate.getDate());
+      invoices.push({
+        id: "INV-" + (Date.now() - i * 1e9).toString().slice(-6),
+        date: d,
+        amount: agent.monthlyCost,
+        status: (i === 0 && agent.status === "past_due") ? "failed" : "paid",
+      });
+    }
+
+    // Mock 6-month revenue trend
+    const revenueTrend = Array.from({ length: 6 }, (_, i) => ({
+      month: new Date(Date.now() - (5 - i) * 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { month: "short" }),
+      revenue: Math.round((agent.revenue / 6) * (0.7 + Math.random() * 0.6)),
+    }));
+
+    const recentActivity = [
+      { icon: "User",        text: "Logged into the CRM",                  time: "2 hours ago" },
+      { icon: "MessageSquare", text: `Sent a message to ${agentLeads[0]?.name || "a lead"}`, time: "4 hours ago" },
+      { icon: "FileText",    text: `Generated a market report for ${agentCommunities[0]?.area || "the Grand Strand"}`, time: "yesterday" },
+      { icon: "Users",       text: `Added a new lead: ${agentLeads[1]?.name || "John Doe"}`, time: "2 days ago" },
+      { icon: "Mail",        text: "Opened welcome email sequence #4",     time: "3 days ago" },
+    ];
+
+    const KV = ({ label, value, mono = false }) => (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+        <span style={{ fontSize: 11, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: 13, color: C.text, fontWeight: 600, fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : "inherit", textAlign: "right", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{value}</span>
+      </div>
+    );
+
+    const adminAction = (label, msg, kind = "info") => () => setToast({ message: msg, kind });
+
+    return (
+      <div>
+        <button onClick={() => setSelectedAgent(null)} style={{
+          background: "none", border: "none", color: C.gold,
+          fontSize: 13, cursor: "pointer", padding: "4px 0", marginBottom: 12,
+          minHeight: 44, display: "flex", alignItems: "center", gap: 4, fontWeight: 600,
+        }}>
+          <ChevronLeft size={16} /> Back to all agents
+        </button>
+
+        {/* Hero — dark luxury */}
+        <div style={{
+          background: `linear-gradient(135deg, ${C.bgDark} 0%, ${C.bgDark2} 100%)`,
+          borderRadius: 14, padding: isMobile ? 24 : 32,
+          color: C.textInv, marginBottom: 16,
+          position: "relative", overflow: "hidden",
+        }}>
+          {/* Decorative gradient */}
+          <div style={{
+            position: "absolute", top: 0, right: 0, width: 220, height: "100%",
+            background: `radial-gradient(circle at top right, ${color}40 0%, transparent 70%)`,
+            pointerEvents: "none",
+          }} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", position: "relative" }}>
+            <Avatar name={agent.name} size={isMobile ? 72 : 88} color={color} />
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 30 : 42, fontWeight: 500, color: C.textInv, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>
+                {agent.name}
+              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+                <Badge color={color}>{agent.plan} Plan</Badge>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: status.color, fontWeight: 600 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 4, background: status.color }} />
+                  {status.label}
+                </span>
+                <span style={{ fontSize: 12, color: C.goldSoft }}>· {agent.brokerage}</span>
+              </div>
+              <div style={{ marginTop: 10, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 11, color: C.goldSoft, letterSpacing: "0.04em" }}>
+                {agent.website}
               </div>
             </div>
-            <div style={urlBadge()}><Globe size={12} /> {a.website}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, fontSize: 12 }}>
-              <div><div style={{ color: C.textDim, fontSize: 10 }}>Leads</div><div style={{ color: C.text, fontWeight: 600 }}>{a.leads}</div></div>
-              <div><div style={{ color: C.textDim, fontSize: 10 }}>Closings</div><div style={{ color: C.text, fontWeight: 600 }}>{a.closings}</div></div>
-              <div><div style={{ color: C.textDim, fontSize: 10 }}>Reports</div><div style={{ color: C.text, fontWeight: 600 }}>{a.reports}</div></div>
-              <div><div style={{ color: C.textDim, fontSize: 10 }}>Revenue</div><div style={{ color: C.teal, fontWeight: 600 }}>${(a.revenue / 1000).toFixed(0)}K</div></div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <a href={`mailto:${agent.email}`} style={{
+                padding: "10px 16px", borderRadius: 6,
+                background: "rgba(255,255,255,0.08)", border: `1px solid rgba(255,255,255,0.18)`,
+                color: C.textInv, fontSize: 12, fontWeight: 600, letterSpacing: "0.04em",
+                cursor: "pointer", textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+              }}><Mail size={13} /> Email</a>
+              <a href={`tel:${agent.phone.replace(/[^0-9]/g, "")}`} style={{
+                padding: "10px 16px", borderRadius: 6,
+                background: C.gold, border: "none",
+                color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
+                cursor: "pointer", textDecoration: "none",
+                display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+              }}><Phone size={13} /> Call</a>
+            </div>
+          </div>
+        </div>
+
+        {/* Stat row */}
+        <div className="tk-stagger" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+          <StatCard icon={Target}      label="Total Leads"     value={agent.leads}                       color={color}    isMobile={isMobile} />
+          <StatCard icon={Award}       label="Closings YTD"    value={agent.closings}                    color={C.gold}   isMobile={isMobile} />
+          <StatCard icon={DollarSign}  label="Revenue YTD"     value={"$" + (agent.revenue / 1000).toFixed(0) + "K"} color={C.green} isMobile={isMobile} subtitle={"Avg deal $" + (avgDealSize / 1000).toFixed(0) + "K"} />
+          <StatCard icon={TrendingUp}  label="Conversion"      value={conversion + "%"}                  color={C.blue}   isMobile={isMobile} subtitle={memberMonths + " month" + (memberMonths > 1 ? "s" : "") + " on platform"} />
+        </div>
+
+        {/* Contact + Billing side by side */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <Card>
+            <h3 style={{ ...cardTitle(), marginBottom: 4 }}>Contact</h3>
+            <p style={{ fontSize: 12, color: C.textMuted, margin: "0 0 12px" }}>Primary contact information on file.</p>
+            <KV label="Email"      value={<a href={`mailto:${agent.email}`} style={{ color: C.text, textDecoration: "none" }}>{agent.email}</a>} />
+            <KV label="Phone"      value={<a href={`tel:${agent.phone.replace(/[^0-9]/g, "")}`} style={{ color: C.text, textDecoration: "none" }}>{agent.phone}</a>} />
+            <KV label="Address"    value={agent.address} />
+            <KV label="Brokerage"  value={agent.brokerage} />
+            <KV label="License"    value={agent.license} mono />
+            <KV label="Subdomain"  value={agent.website} mono />
+            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+              <button onClick={adminAction("imp", "Now impersonating " + agent.name.split(" ")[0] + ". Audit log entry created.", "info")} style={quickAction(C.blue)}>
+                <Eye size={13} /> Impersonate
+              </button>
+              <button onClick={adminAction("pw", "Password reset email sent to " + agent.email, "success")} style={quickAction(C.purple)}>
+                <RefreshCw size={13} /> Send reset link
+              </button>
             </div>
           </Card>
-        ))}
+
+          <Card>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <h3 style={{ ...cardTitle(), marginBottom: 4 }}>Billing</h3>
+              <Badge color={status.color}>{status.label}</Badge>
+            </div>
+            <p style={{ fontSize: 12, color: C.textMuted, margin: "0 0 12px" }}>Subscription, payment method, and admin actions.</p>
+            <KV label="Plan"            value={agent.plan + " · $" + agent.monthlyCost + "/mo"} />
+            <KV label="Subscriber since" value={new Date(agent.signupDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} />
+            <KV label="Next renewal"    value={nextBillingDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + (agent.nextBillingDays < 0 ? " · OVERDUE" : ` · in ${agent.nextBillingDays}d`)} />
+            <KV label="Payment method"  value={`${agent.paymentMethod.brand} · ending ${agent.paymentMethod.last4}`} />
+            <KV label="Card expires"    value={String(agent.paymentMethod.expMonth).padStart(2, "0") + "/" + agent.paymentMethod.expYear} />
+            <KV label="Lifetime value"  value={"$" + ltv.toLocaleString() + "  · " + memberMonths + " mo"} />
+
+            <div style={{ marginTop: 14, padding: 12, background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+                Admin actions
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={adminAction("plan", "Stripe checkout opened to change " + agent.name.split(" ")[0] + "'s plan", "info")} style={quickAction(C.blue)}>
+                  <ArrowUpDown size={13} /> Change plan
+                </button>
+                <button onClick={adminAction("comp", "Free month comped on " + agent.name.split(" ")[0] + "'s account", "success")} style={quickAction(C.gold)}>
+                  <Sparkles size={13} /> Comp a month
+                </button>
+                <button onClick={adminAction("refund", "$" + agent.monthlyCost + " refunded to " + agent.paymentMethod.brand + " ending " + agent.paymentMethod.last4, "success")} style={quickAction(C.purple)}>
+                  <RefreshCw size={13} /> Refund last payment
+                </button>
+                {agent.status === "active" ? (
+                  <button onClick={adminAction("susp", agent.name + " has been suspended. Their subdomain will return 503 within 60 seconds.", "info")} style={quickAction(C.red)}>
+                    <Lock size={13} /> Suspend access
+                  </button>
+                ) : (
+                  <button onClick={adminAction("resume", agent.name + " reactivated. Subdomain back online.", "success")} style={quickAction(C.green)}>
+                    <CheckCircle2 size={13} /> Reactivate
+                  </button>
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Performance trend + invoices */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr", gap: 16, marginBottom: 16 }}>
+          <Card>
+            <h3 style={cardTitle()}>Revenue trend · last 6 months</h3>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={revenueTrend} margin={{ top: 10, right: 8, bottom: 0, left: -16 }}>
+                <defs>
+                  <linearGradient id={`agent-rev-${agent.id}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.gold} stopOpacity={0.35} />
+                    <stop offset="100%" stopColor={C.gold} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={C.border} strokeDasharray="2 6" horizontal vertical={false} />
+                <XAxis dataKey="month" stroke={C.textDim} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={C.textDim} fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => "$" + (v / 1000).toFixed(0) + "K"} width={42} />
+                <Tooltip cursor={{ stroke: C.gold + "55", strokeWidth: 1 }}
+                         content={<ChartTooltip valueFormatter={v => "$" + v.toLocaleString()} />} />
+                <Area type="monotone" dataKey="revenue" stroke={C.gold} fill={`url(#agent-rev-${agent.id})`} strokeWidth={2.5} activeDot={{ r: 5, fill: C.gold }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+
+          <Card>
+            <h3 style={cardTitle()}>Billing history</h3>
+            {invoices.length === 0 ? (
+              <EmptyState icon={FileText} title="No invoices yet" message="First invoice will generate on next billing date." />
+            ) : (
+              <div>
+                {invoices.map(inv => (
+                  <div key={inv.id} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "10px 0", borderBottom: `1px solid ${C.border}`,
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>${inv.amount.toFixed(2)}</div>
+                      <div style={{ fontSize: 11, color: C.textDim, fontFamily: "ui-monospace, monospace" }}>{inv.id}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 12, color: C.textMuted }}>{inv.date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</div>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                        color: inv.status === "paid" ? C.green : C.red,
+                      }}>{inv.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Pipeline + Communities */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <Card>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+              <h3 style={{ ...cardTitle(), margin: 0 }}>Active leads</h3>
+              <span style={{ fontSize: 11, color: C.textDim }}>{agentLeads.length} assigned</span>
+            </div>
+            {agentLeads.length === 0 ? (
+              <EmptyState icon={Users} title="No leads yet" message="When leads come in for this agent, they'll show here." />
+            ) : (
+              <div>
+                {agentLeads.slice(0, 5).map(lead => (
+                  <div key={lead.id}
+                       onClick={() => { setSelectedAgent(null); setSelectedLead(lead); setView("leads"); }}
+                       style={{
+                         display: "flex", alignItems: "center", gap: 10, padding: "10px 0",
+                         borderBottom: `1px solid ${C.border}`, cursor: "pointer",
+                       }}>
+                    <Avatar name={lead.name} size={32} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lead.name}</div>
+                      <div style={{ fontSize: 11, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.source}</div>
+                    </div>
+                    <Score score={lead.score} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+              <h3 style={{ ...cardTitle(), margin: 0 }}>Community pages</h3>
+              <span style={{ fontSize: 11, color: C.textDim }}>{agentCommunities.length} subscribed</span>
+            </div>
+            {agentCommunities.length === 0 ? (
+              <EmptyState icon={Map} title="No community pages yet" message="Agent hasn't activated any community pages." />
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {agentCommunities.map(c => (
+                  <div key={c.id}
+                       onClick={() => { setSelectedAgent(null); setSelectedCommunity(c); setView("communities"); }}
+                       style={{
+                         display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                         background: C.bgInset, border: `1px solid ${C.border}`, borderRadius: 8,
+                         cursor: "pointer", transition: "border-color 0.15s ease",
+                       }}
+                       onMouseEnter={e => e.currentTarget.style.borderColor = C.gold + "55"}
+                       onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+                    <div style={{ fontSize: 18 }}>{c.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>{c.area} · {c.listings} active</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 13, color: C.gold, fontWeight: 700 }}>{c.leads}</div>
+                      <div style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>Leads</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Recent activity */}
+        <Card>
+          <h3 style={cardTitle()}>Recent activity</h3>
+          {recentActivity.map((ev, i) => (
+            <ActivityRow key={i} event={ev} />
+          ))}
+        </Card>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const AgentsView = () => {
+    if (selectedAgent) {
+      return <AgentDetail agent={selectedAgent} />;
+    }
+    // Aggregate MRR for the header summary
+    const totalMRR  = AGENTS.reduce((s, a) => s + (a.monthlyCost || 0), 0);
+    const activeMRR = AGENTS.filter(a => a.status === "active").reduce((s, a) => s + (a.monthlyCost || 0), 0);
+    const pastDue   = AGENTS.filter(a => a.status === "past_due").length;
+    return (
+      <div>
+        <div style={pageHeader(isMobile)}>
+          <div>
+            <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>
+              Subscribing Agents
+            </h1>
+            <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>
+              {AGENTS.length} agents · ${totalMRR}/mo billed · ${activeMRR}/mo active{pastDue > 0 ? ` · ${pastDue} past due` : ""}
+            </p>
+          </div>
+          <button onClick={() => setToast({ message: "Invite-agent flow — coming soon", kind: "info" })} style={btnPrimary()}>
+            <UserPlus size={14} /> Invite agent
+          </button>
+        </div>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
+          gap: 16,
+        }}>
+          {AGENTS.map(a => <AgentCard key={a.id} a={a} />)}
+        </div>
+      </div>
+    );
+  };
 
   // ----- AI TOOLS -----
   const AIView = () => (
@@ -4922,7 +5324,7 @@ export default function App() {
             const active = view === item.id;
             return (
               <button key={item.id}
-                onClick={() => { setView(item.id); setSelectedLead(null); setSelectedCommunity(null); if (isMobile) setSidebarOpen(false); }}
+                onClick={() => { setView(item.id); setSelectedLead(null); setSelectedCommunity(null); setSelectedAgent(null); if (isMobile) setSidebarOpen(false); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 10, width: "100%",
                   padding: isMobile ? "12px 12px" : "10px 12px", marginBottom: 2, borderRadius: 6, border: "none",
