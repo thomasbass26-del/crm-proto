@@ -189,141 +189,248 @@ const THINKING_PHASES = {
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 function genMarketReport(ctx) {
-  const market = ctx && ctx.title ? ctx.title : pick(["Myrtle Beach", "North Myrtle Beach", "Pawleys Island", "Conway"]);
+  const market = ctx?.title || pick(["Myrtle Beach", "North Myrtle Beach", "Pawleys Island", "Conway"]);
   const inv = ctx?.inv ?? Math.floor(120 + Math.random() * 240);
-  const avg = ctx?.avgPrice ?? "$" + (280 + Math.floor(Math.random() * 200)) + ",000";
-  const change = ctx?.priceChange ?? "+" + (2 + Math.random() * 6).toFixed(1) + "%";
+  const avgPriceStr = ctx?.avgPrice ?? "$" + (280 + Math.floor(Math.random() * 200)).toLocaleString() + ",000";
+  const avgPriceNum = parseInt(String(avgPriceStr).replace(/[^0-9]/g, ""), 10) || 345000;
+  const yoyChange = ctx?.priceChange ?? "+" + (2 + Math.random() * 6).toFixed(1) + "%";
   const dom = ctx?.dom ?? Math.floor(35 + Math.random() * 30);
+
   const opener = pick([
-    `${market} continues to show resilient demand into Q2 2026.`,
-    `The ${market} market is tilting in favor of well-priced sellers heading into spring.`,
-    `Buyer activity in ${market} is up sharply versus the same period last year.`,
+    `${market} continues to show resilient demand into Q2 2026, with steady price appreciation and tightening inventory.`,
+    `The ${market} market is tilting in favor of well-priced sellers heading into spring. Buyers who hesitate are losing offers.`,
+    `Buyer activity in ${market} is up sharply versus the same period last year, putting upward pressure on prices.`,
   ]);
   const inventoryNote = inv < 200 ? "Inventory remains tight — under 4 months of supply at current absorption." :
-    inv < 280 ? "Inventory is balanced — roughly 4 to 5 months of supply." :
+    inv < 280 ? "Inventory is balanced — roughly 4 to 5 months of supply, slightly favoring sellers." :
     "Inventory is climbing, giving buyers more leverage than they had last quarter.";
-  const closer = pick([
-    `Expect continued appreciation of 3 to 5 percent through Q3.`,
-    `Watch for a modest seasonal cooling in late summer before fall demand resumes.`,
-    `Sellers who price within 2 percent of market are still seeing offers inside the first weekend.`,
+  const forecast = pick([
+    `Expect continued appreciation of 3 to 5 percent through Q3, with single-family inventory likely to remain constrained.`,
+    `Watch for a modest seasonal cooling in late summer before fall demand resumes. Use this window to negotiate.`,
+    `Sellers who price within 2 percent of market are still seeing offers inside the first weekend. Buyers should arrive pre-approved.`,
   ]);
-  return [
-    `${market} Market Report — May 2026`,
-    "",
-    opener,
-    "",
-    "Key numbers this month:",
-    `• Median price: ${avg} (${change} YoY)`,
-    `• Active inventory: ${inv} listings`,
-    `• Days on market: ${dom}`,
-    `• ${inventoryNote}`,
-    "",
-    "Notable trends:",
-    `• ${pick(["Oceanfront condos", "Single-story homes", "Golf community resales"])} are the strongest segment, with bidding activity on ${pick(["roughly 30%", "about 1 in 4", "nearly half"])} of sub-${pick(["$400K", "$500K", "$600K"])} listings.`,
-    `• Days on market dropped ${pick(["from 52 to " + dom, "by " + (5 + Math.floor(Math.random() * 8)) + " days vs. last quarter", "noticeably for under-$400K homes"])}.`,
-    `• Buyer ${pick(["relocations from the Northeast", "second-home demand", "investor activity"])} continues to drive the upper price tiers.`,
-    "",
-    `Forecast: ${closer}`,
-  ].join("\n");
+
+  // 6-month price trend ending at avgPriceNum
+  const months = ["Dec", "Jan", "Feb", "Mar", "Apr", "May"];
+  const trendStart = avgPriceNum * 0.92;
+  const priceTrend = months.map((m, i) => ({
+    month: m,
+    price: Math.round(trendStart + (avgPriceNum - trendStart) * (i / (months.length - 1)) + (Math.random() - 0.5) * avgPriceNum * 0.01),
+  }));
+  const inventoryTrend = months.map((m, i) => ({
+    month: m,
+    inv: Math.round(inv * (1.18 - i * 0.03) + (Math.random() - 0.5) * 20),
+  }));
+
+  const segments = pick([
+    { name: "Oceanfront condos", reason: "low new construction and second-home demand" },
+    { name: "Single-story patio homes", reason: "boomers driving an active relocation wave" },
+    { name: "Golf community resales", reason: "limited inventory and aging-in-place buyers" },
+  ]);
+
+  return {
+    kind: "market-report",
+    market,
+    date: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    agentName: ctx?.agent || "Sarah Mitchell",
+    summary: opener + " " + inventoryNote,
+    stats: {
+      avgPrice: avgPriceStr,
+      priceChange: yoyChange,
+      inventory: inv,
+      inventoryChange: inv < 240 ? "−12% YoY" : "+4% YoY",
+      dom,
+      domChange: dom < 45 ? "−7 days" : "+3 days",
+      newListings: Math.max(8, Math.round(inv * 0.12)),
+    },
+    priceTrend,
+    inventoryTrend,
+    trends: [
+      {
+        heading: "Strongest segment: " + segments.name,
+        text: `${segments.name} are seeing the fastest pace of sale — driven by ${segments.reason}. Listings priced at or below comp average are receiving multiple offers within the first weekend.`,
+      },
+      {
+        heading: "Days on market shrinking",
+        text: `Time on market dropped to ${dom} days, ${pick(["roughly 12% faster", "about a week shorter", "noticeably tighter"])} than the same period last year. The shift is most pronounced in the sub-$${avgPriceNum < 400000 ? "400K" : "500K"} segment.`,
+      },
+      {
+        heading: "Buyer mix is shifting",
+        text: pick([
+          "Relocations from the Northeast are now the largest share of buyer activity, with cash offers up materially among that group.",
+          "Second-home and investor demand continues to drive the upper price tiers, while local move-ups are driving the mid-range.",
+          "Out-of-state buyers represent roughly 40% of contracts, a meaningful jump over last year.",
+        ]),
+      },
+    ],
+    forecast,
+    sources: ["Coastal Carolinas MLS, May 2026 closed sales", "triskope analytics", "agent broker network"],
+  };
 }
 
 function genListingDesc(ctx) {
-  const area = ctx?.area || pick(["Barefoot Resort", "Grande Dunes", "Pawleys Island", "Carolina Forest", "Market Common"]);
-  const beds = pick([3, 4, 4, 5]);
-  const baths = pick([2, 2.5, 3, 3.5]);
-  const openers = [
-    `Welcome to your Low Country retreat in ${area}.`,
-    `A rare offering in ${area} — and it's exactly the kind of home buyers ask us about every week.`,
-    `From the moment you turn into ${area}, this home tells you it's different.`,
-  ];
-  return [
-    pick(openers),
-    "",
-    `This ${beds}BR / ${baths}BA blends comfort and craftsmanship — soaring ceilings, an open-concept living area, and a chef's kitchen anchored by quartz counters, custom cabinetry, and stainless appliances.`,
-    "",
-    `The primary suite is a true escape: a spa-style bath with dual vanities, a soaking tub, and a walk-in closet you'll actually find room in. Secondary bedrooms each have generous closet space and access to upgraded baths.`,
-    "",
-    pick([
-      `Out back, the screened porch and travertine patio overlook a beautifully landscaped yard — the kind of outdoor living that defines coastal Carolina.`,
-      `Step outside to a private courtyard with a custom paver patio, fire pit, and room for a future pool. It's the rare ${area} lot that gives you the outdoor space you want.`,
-      `Enjoy unobstructed views from the rear deck, designed for morning coffee and sunset cocktails.`,
+  const area = ctx?.area || ctx?.community || pick(["Barefoot Resort", "Grande Dunes", "Pawleys Island", "Carolina Forest", "Market Common"]);
+  const beds = ctx?.beds ?? pick([3, 4, 4, 5]);
+  const baths = ctx?.baths ?? pick([2, 2.5, 3, 3.5]);
+  const sqft = ctx?.sqft ?? Math.round(1800 + Math.random() * 1500);
+  const priceNum = ctx?.price ?? 425000 + Math.round(Math.random() * 400000);
+  const address = ctx?.address || pick(["1247 Ocean Blvd #802", "142 Springs Ave", "88 Magnolia Lake Ct", "44 Pelican Pointe Dr"]);
+  const photo = ctx?.photo || pick(["🌊", "🏡", "🏖️", "⛳", "🌅"]);
+
+  const headline = pick([
+    "Coastal Living, Reimagined",
+    "Your Low Country Retreat Awaits",
+    "A Rare Offering in " + area,
+    "Where Comfort Meets Craftsmanship",
+  ]);
+
+  return {
+    kind: "listing-desc",
+    headline,
+    address,
+    community: area,
+    price: priceNum,
+    beds, baths, sqft,
+    photo,
+    agentName: ctx?.agent || "Sarah Mitchell",
+    paragraphs: [
+      pick([
+        `From the moment you turn onto the drive, this ${beds}BR / ${baths}BA tells you it's different. Soaring ceilings, an open-concept living area, and a chef's kitchen anchored by quartz counters, custom cabinetry, and high-end stainless appliances.`,
+        `Welcome to your Low Country retreat. This thoughtfully designed ${beds}BR / ${baths}BA blends comfort and craftsmanship — wide-plank hardwoods, plantation shutters, and an open floor plan made for entertaining.`,
+        `A rare ${beds}BR / ${baths}BA find — the kind of home buyers ask about every week. Floor-to-ceiling natural light, an oversized chef's kitchen with island seating for six, and a flow that feels effortless.`,
+      ]),
+      pick([
+        "The primary suite is a true escape — a spa-style bath with dual vanities, a soaking tub, and a walk-in closet you'll actually find room in. Secondary bedrooms each have generous closet space and access to upgraded baths.",
+        "The owner's retreat features an oversized walk-in shower, freestanding tub, and a walk-in closet that runs the depth of the suite. Three additional bedrooms provide flexibility for family, guests, or a home office.",
+      ]),
+      pick([
+        `Out back, the screened porch and travertine patio overlook a beautifully landscaped yard with mature live oaks — the kind of outdoor living that defines coastal Carolina.`,
+        `Step outside to a private courtyard with a custom paver patio, fire pit, and room for a future pool. The lot gives you outdoor space that's increasingly rare in ${area}.`,
+        `Enjoy unobstructed views from the rear deck, engineered for morning coffee and sunset cocktails. Privacy, mature landscaping, and a layout designed around outdoor living.`,
+      ]),
+    ],
+    highlights: [
+      pick(["Chef's kitchen with quartz counters", "Whole-house generator", "Smart-home wiring throughout", "Tankless water heater"]),
+      pick(["Screened porch with travertine floor", "Oversized walk-in pantry", "First-floor primary suite", "Custom plantation shutters"]),
+      pick(["Three-car garage with epoxy floor", "Custom mudroom drop zone", "Hurricane-rated windows", "Tray ceilings in the main living areas"]),
+      pick(["Walking distance to community amenities", "Two-minute drive to the beach", "Top-rated school zone", "Oceanfront cabana access"]),
+    ],
+    amenities: pick([
+      "Championship golf, oceanfront cabana access, and resort-style pools.",
+      area + " delivers walkable shopping, top-rated schools, and a tight-knit community feel just minutes from the beach.",
+      "Steps from miles of beach access, restaurants, and the Intracoastal Waterway.",
     ]),
-    "",
-    pick([
-      `Community amenities include championship golf, oceanfront cabana access, and resort-style pools.`,
-      `${area} delivers walkable shopping, top-rated schools, and a tight-knit community feel just minutes from the beach.`,
-      `Steps from miles of beach access, restaurants, and the Intracoastal Waterway — the lifestyle here sells itself.`,
-    ]),
-  ].join("\n");
+  };
 }
 
 function genEmailCampaign(ctx) {
   const name = ctx?.name?.split(" ")[0] || "[First Name]";
   const area = ctx?.area || "the Grand Strand";
-  return [
-    `Subject: ${pick(["A quick Grand Strand update for you", "Your monthly market snapshot", "Three homes I think you'll love"])}`,
-    "",
-    `Hi ${name},`,
-    "",
-    `Quick update on ${area} — I wanted to put a few things in front of you before the weekend.`,
-    "",
-    "Market snapshot:",
-    `• Median price moved ${pick(["+5.2%", "+4.6%", "+3.8%"])} year over year`,
-    `• Homes are spending roughly ${pick([42, 45, 48])} days on market`,
-    `• New listings are up about ${pick(["8%", "11%", "6%"])} this month versus last`,
-    "",
-    "Three homes I think fit what you're looking for:",
-    `• 1247 Ocean Blvd #802 — ${pick(["price-improved 10K", "first weekend, no offers yet", "motivated seller"])}`,
-    `• 142 Springs Ave — ${pick(["just listed Friday", "your kind of layout", "creek-front, rare listing"])}`,
-    `• 88 Magnolia Lake Ct — ${pick(["good comps for your range", "under list for this neighborhood", "freshly renovated"])}`,
-    "",
-    `If any of these are worth a closer look, just hit reply and I'll send the full listing packets. Happy to set up a same-day tour if it makes sense.`,
-    "",
-    `— ${ctx?.agent || "Sarah"}`,
-  ].join("\n");
+  const agentName = ctx?.agent || "Sarah Mitchell";
+  const agentFirst = agentName.split(" ")[0];
+  return {
+    kind: "email-campaign",
+    from: { name: agentName, email: agentFirst.toLowerCase() + "@triskope.io" },
+    to: { name: ctx?.name || "[Lead name]", email: ctx?.email || "lead@example.com" },
+    subject: pick([
+      "Three " + area + " homes I think you'll love",
+      "Your weekly " + area + " market check-in",
+      "Quick update — and a home worth seeing",
+    ]),
+    date: new Date(),
+    greeting: `Hi ${name},`,
+    paragraphs: [
+      `Quick update on ${area} — I wanted to put a few things in front of you before the weekend.`,
+      `The market shifted faster than expected this month. Median price is up year over year, days on market are tighter, and I'm seeing more buyer activity at the entry tier. Here's a snapshot you can scan in 30 seconds:`,
+    ],
+    stats: [
+      { label: "Median price (YoY)", value: pick(["+5.2%", "+4.6%", "+3.8%"]) },
+      { label: "Days on market",     value: pick(["42 days", "45 days", "48 days"]) },
+      { label: "New listings",       value: "+" + pick(["8%", "11%", "6%"]) + " MoM" },
+    ],
+    listingsHeader: "Three homes that fit what you're looking for:",
+    listings: [
+      { address: "1247 Ocean Blvd #802", price: "$485,000", note: pick(["Price-improved $10K", "First weekend — no offers yet", "Motivated seller, willing to negotiate"]) },
+      { address: "142 Springs Ave",       price: "$625,000", note: pick(["Just listed Friday", "Matches the layout you mentioned", "Creek-front, very rare"]) },
+      { address: "88 Magnolia Lake Ct",   price: "$545,000", note: pick(["Strong comps in this range", "Below list for the neighborhood", "Freshly renovated"]) },
+    ],
+    closing: `If any of these are worth a closer look, just hit reply and I'll send the full listing packets. Happy to set up a same-day tour if it makes sense.`,
+    cta: "Schedule a tour with " + agentFirst,
+    signoff: { name: agentName, title: "Licensed agent · Grand Strand", phone: "(843) 555-0100", email: agentFirst.toLowerCase() + "@triskope.io" },
+  };
 }
 
 function genLeadScore(lead) {
   if (!lead) {
-    return "Open a lead's profile and run AI Score Analysis from there — that way the model can use real behavioral signals from that contact.";
+    return {
+      kind: "lead-score",
+      empty: true,
+      message: "Open a lead's profile and run AI Score Analysis from there — that way the model can use real behavioral signals from that contact.",
+    };
   }
   const positive = [];
   const negative = [];
-  if (lead.score >= 80) positive.push(`Strong engagement pattern — score ${lead.score}/100`);
-  if (lead.tags?.includes("pre-approved")) positive.push("Pre-approval letter on file");
-  if (lead.tags?.includes("ready-to-offer")) positive.push("Stated intent to write an offer this week");
-  if (lead.activity?.some(a => a.type === "showing")) positive.push("Attended an in-person showing");
-  if (lead.activity?.filter(a => a.type === "view").length >= 2) positive.push("Repeat site visits in the past week");
-  if (lead.activity?.some(a => a.type === "call")) positive.push("Direct conversation with assigned agent");
-  if (lead.tags?.includes("low-engagement")) negative.push("Engagement has dropped off in the last 3 weeks");
-  if (!lead.activity?.some(a => a.type === "call")) negative.push("No phone conversation yet");
-  if (lead.tags?.includes("needs-preapproval")) negative.push("Pre-approval still pending");
-  if (lead.status === "cold") negative.push("Status flagged cold — automated email bounce detected");
+  if (lead.score >= 80) positive.push({ label: "High overall engagement", weight: 22 });
+  if (lead.tags?.includes("pre-approved")) positive.push({ label: "Pre-approval letter on file", weight: 18 });
+  if (lead.tags?.includes("ready-to-offer")) positive.push({ label: "Stated intent to write an offer this week", weight: 20 });
+  if (lead.activity?.some(a => a.type === "showing")) positive.push({ label: "Attended an in-person showing", weight: 15 });
+  if ((lead.activity?.filter(a => a.type === "view") || []).length >= 2) positive.push({ label: "Repeat site visits in the past week", weight: 12 });
+  if (lead.activity?.some(a => a.type === "call")) positive.push({ label: "Direct phone conversation with assigned agent", weight: 14 });
+  if (lead.tags?.includes("low-engagement")) negative.push({ label: "Engagement has dropped off in the last 3 weeks", weight: -16 });
+  if (!lead.activity?.some(a => a.type === "call")) negative.push({ label: "No phone conversation yet", weight: -8 });
+  if (lead.tags?.includes("needs-preapproval")) negative.push({ label: "Pre-approval still pending", weight: -10 });
+  if (lead.status === "cold") negative.push({ label: "Status flagged cold — recent email bounces", weight: -18 });
 
-  const recommended = lead.status === "hot"
-    ? pick(["Call today to discuss specific listings and confirm timeline.", "Book an in-person tour for this weekend.", "Send a tailored shortlist of 3 homes that match the budget and area."])
+  const recommendation = lead.status === "hot"
+    ? pick([
+        { title: "Call today to discuss specific listings and confirm timeline", subtitle: "Window is open; intent is high. Get specific while energy is fresh." },
+        { title: "Book an in-person tour for this weekend", subtitle: "Hot leads who tour within 7 days close at 3x the rate of those who don't." },
+        { title: "Send a tailored shortlist of 3 homes", subtitle: "Match their stated budget and area; include one stretch option." },
+      ])
     : lead.status === "new"
-    ? pick(["Warm outreach call within 24 hours — keep it casual.", "Send the relevant community report and a personal welcome email.", "Trigger the 'new buyer' drip sequence and tag for follow-up."])
+    ? pick([
+        { title: "Warm outreach call within 24 hours", subtitle: "Keep it casual — first-touch speed is the single biggest conversion lever." },
+        { title: "Send the relevant community report + a personal welcome email", subtitle: "Establish value before asking anything in return." },
+        { title: "Trigger the 'new buyer' drip sequence and tag for follow-up", subtitle: "Automate the cadence; you can personalize after the first reply." },
+      ])
     : lead.status === "nurture"
-    ? pick(["Drop a low-friction check-in email — share a fresh listing relevant to their area.", "Invite to an upcoming open house in their target neighborhood.", "Send a value-add piece (financing options, schools, or local guide)."])
-    : pick(["Skip immediate outreach — move to quarterly 'just in case' sequence.", "Try a polite re-engagement email; if no open within 7 days, downgrade priority."]);
+    ? pick([
+        { title: "Drop a low-friction check-in email", subtitle: "Share a fresh listing relevant to their area — no ask." },
+        { title: "Invite to an upcoming open house in their target neighborhood", subtitle: "Low commitment, high signal." },
+        { title: "Send a value-add piece (financing options, schools, local guide)", subtitle: "Stay top of mind without pushing for a decision." },
+      ])
+    : pick([
+        { title: "Move to quarterly 'just in case' sequence", subtitle: "Skip immediate outreach; this lead is dormant." },
+        { title: "Try a polite re-engagement email", subtitle: "If no open within 7 days, downgrade priority and reclaim the slot." },
+      ]);
 
   const intent = Math.min(95, Math.max(15, Math.round(lead.score * 0.9 + (lead.activity?.length || 0) * 1.5)));
-  return [
-    `AI Lead Analysis — ${lead.name}`,
-    "",
-    `Overall score: ${lead.score}/100  (${lead.status === "hot" ? "Hot" : lead.status === "nurture" ? "Warm" : lead.status === "new" ? "Fresh" : "Cold"})`,
-    "",
-    "What's working:",
-    ...positive.slice(0, 4).map(p => `+ ${p}`),
-    "",
-    negative.length ? "Friction:" : "",
-    ...negative.slice(0, 3).map(n => `- ${n}`),
-    negative.length ? "" : null,
-    `Predicted intent: ${intent}% likely to act within 90 days.`,
-    "",
-    `Recommended next move: ${recommended}`,
-  ].filter(x => x !== null).join("\n");
+  const classification = lead.status === "hot" ? "Hot lead" :
+                         lead.status === "nurture" ? "Warm lead" :
+                         lead.status === "new" ? "Fresh lead" : "Cold lead";
+  const classificationColor =
+    lead.status === "hot" ? "#ef4444" :
+    lead.status === "nurture" ? "#f59e0b" :
+    lead.status === "new" ? "#818cf8" :
+    "#55557a";
+
+  return {
+    kind: "lead-score",
+    leadName: lead.name,
+    score: lead.score,
+    intent,
+    classification,
+    classificationColor,
+    positive: positive.slice(0, 4),
+    negative: negative.slice(0, 3),
+    recommendation,
+    quickFacts: [
+      { label: "Source",   value: lead.source || "—" },
+      { label: "Budget",   value: lead.budget || "—" },
+      { label: "Area",     value: lead.area || "—" },
+      { label: "Activity", value: (lead.activity?.length || 0) + " events" },
+    ],
+  };
 }
 
 function generateAI(type, ctx) {
@@ -491,6 +598,541 @@ const ChartTooltip = ({ active, payload, label, valueFormatter, labelFormatter }
     </div>
   );
 };
+
+// ============================================================
+// AI document components — render structured AI output as
+// professional, print-ready documents
+// ============================================================
+
+const docFont = `"Calibri", "Helvetica Neue", -apple-system, system-ui, sans-serif`;
+
+const formatMoney = (n) => "$" + Math.round(n).toLocaleString();
+
+function DocHeader({ kind, title, subtitle, agentName, date }) {
+  const initials = (agentName || "").split(" ").map(s => s[0]).join("");
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, #0a0a14 0%, #1e1e32 100%)",
+      color: "#ffffff", padding: "20px 28px",
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 10, color: C.teal, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
+          {kind}
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4, color: "#fff", lineHeight: 1.15 }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 13, color: "#a0a0c0", marginTop: 4 }}>{subtitle}</div>}
+      </div>
+      <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 10, color: "#8888a8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Prepared</div>
+          <div style={{ fontSize: 12, color: "#fff", marginTop: 2 }}>{date}</div>
+          {agentName && <div style={{ fontSize: 12, color: C.teal, marginTop: 2, fontWeight: 700 }}>by {agentName}</div>}
+        </div>
+        {agentName && (
+          <div style={{
+            width: 44, height: 44, borderRadius: "50%",
+            background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#0a0a14", fontSize: 14, fontWeight: 700, flexShrink: 0,
+          }}>{initials}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DocFooter({ agentName, sources }) {
+  return (
+    <div style={{
+      borderTop: "1px solid #e2e3ec",
+      padding: "16px 28px",
+      background: "#fafafd",
+      fontSize: 10, color: "#55557a",
+      display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+    }}>
+      <div>
+        {sources && sources.length > 0 && <>Sources: {sources.join(" · ")}<br /></>}
+        Prepared by {agentName || "your triskope agent"}.
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span>Powered by</span>
+        <span style={{ color: "#0d8b75", fontWeight: 800, letterSpacing: "0.05em" }}>triskope</span>
+      </div>
+    </div>
+  );
+}
+
+function MarketReportDoc({ data }) {
+  const yoyPos = (data.stats.priceChange || "").startsWith("+");
+  return (
+    <div className="tk-print" style={{ background: "#ffffff", color: "#1a1a2e", borderRadius: 10, overflow: "hidden", fontFamily: docFont, boxShadow: "0 12px 36px rgba(0,0,0,0.45)" }}>
+      <DocHeader
+        kind="Market Report"
+        title={data.market}
+        subtitle={data.date + " · Grand Strand"}
+        agentName={data.agentName}
+        date={data.date}
+      />
+
+      <div style={{ padding: "24px 28px" }}>
+        {/* Summary */}
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+          Executive Summary
+        </div>
+        <p style={{ fontSize: 15, lineHeight: 1.6, color: "#1a1a2e", margin: "0 0 20px" }}>{data.summary}</p>
+
+        {/* Stat row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+          {[
+            { label: "Median price",  value: data.stats.avgPrice,         delta: data.stats.priceChange,    pos: yoyPos },
+            { label: "Active listings", value: data.stats.inventory,      delta: data.stats.inventoryChange, pos: !data.stats.inventoryChange.startsWith("+") },
+            { label: "Days on market",  value: data.stats.dom + "d",      delta: data.stats.domChange,       pos: data.stats.domChange.startsWith("−") || data.stats.domChange.startsWith("-") },
+            { label: "New listings",    value: data.stats.newListings,    delta: "this month",               pos: true },
+          ].map(s => (
+            <div key={s.label} style={{ padding: 14, borderRadius: 10, background: "#f6f7fb", border: "1px solid #e2e3ec" }}>
+              <div style={{ fontSize: 10, color: "#55557a", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>{s.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4, color: "#1a1a2e" }}>{s.value}</div>
+              <div style={{ fontSize: 11, color: s.pos ? "#0d8b75" : "#c83a3a", fontWeight: 600, marginTop: 2 }}>
+                {s.delta}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Price trend chart */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase" }}>6-Month Price Trend</span>
+            <span style={{ fontSize: 10, color: "#55557a" }}>Median sale price by month</span>
+          </div>
+          <div style={{ height: 180, background: "#fafafd", borderRadius: 10, border: "1px solid #e2e3ec", padding: 10 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.priceTrend} margin={{ top: 8, right: 12, bottom: 0, left: 8 }}>
+                <defs>
+                  <linearGradient id="doc-price-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2dd4bf" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#e2e3ec" strokeDasharray="2 6" vertical={false} />
+                <XAxis dataKey="month" stroke="#55557a" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#55557a" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => "$" + Math.round(v/1000) + "K"} width={48} />
+                <Tooltip
+                  contentStyle={{ background: "#fff", border: "1px solid #e2e3ec", borderRadius: 8, fontSize: 12 }}
+                  formatter={v => formatMoney(v)}
+                />
+                <Area type="monotone" dataKey="price" stroke="#0d8b75" fill="url(#doc-price-grad)" strokeWidth={2.5} activeDot={{ r: 4, fill: "#0d8b75" }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Trend bullets */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+            What's Moving the Market
+          </div>
+          {data.trends.map((t, i) => (
+            <div key={i} style={{ display: "flex", gap: 12, paddingBottom: 12, marginBottom: 12, borderBottom: i < data.trends.length - 1 ? "1px solid #e2e3ec" : "none" }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: "linear-gradient(135deg, #5eead4, #818cf8)",
+                color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: 800, flexShrink: 0,
+              }}>{i + 1}</div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e", marginBottom: 2 }}>{t.heading}</div>
+                <div style={{ fontSize: 13, color: "#3a3a52", lineHeight: 1.55 }}>{t.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Forecast callout */}
+        <div style={{
+          background: "linear-gradient(135deg, #ecf6f5 0%, #eef0fd 100%)",
+          padding: "16px 18px", borderRadius: 10,
+          border: "1px solid #c8e8e0",
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+            Forecast & Recommendation
+          </div>
+          <div style={{ fontSize: 14, color: "#1a1a2e", lineHeight: 1.6 }}>{data.forecast}</div>
+        </div>
+      </div>
+
+      <DocFooter agentName={data.agentName} sources={data.sources} />
+    </div>
+  );
+}
+
+function ListingFlyerDoc({ data }) {
+  return (
+    <div className="tk-print" style={{ background: "#ffffff", color: "#1a1a2e", borderRadius: 10, overflow: "hidden", fontFamily: docFont, boxShadow: "0 12px 36px rgba(0,0,0,0.45)" }}>
+      {/* Hero image area */}
+      <div style={{
+        height: 220,
+        background: `linear-gradient(135deg, #5eead430 0%, #818cf830 50%, #a78bfa30 100%)`,
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 92,
+        position: "relative",
+      }}>
+        {data.photo}
+        <div style={{
+          position: "absolute", top: 14, left: 14,
+          background: "linear-gradient(135deg, #0a0a14, #1e1e32)", color: "#fff",
+          padding: "6px 12px", borderRadius: 6, fontSize: 10,
+          letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700,
+        }}>Featured Listing</div>
+        <div style={{
+          position: "absolute", bottom: 14, right: 14,
+          background: "rgba(255,255,255,0.95)", color: "#0d8b75",
+          padding: "6px 12px", borderRadius: 6, fontSize: 14, fontWeight: 800,
+        }}>{formatMoney(data.price)}</div>
+      </div>
+
+      <div style={{ padding: "24px 28px" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+          {data.community}
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 6px", color: "#1a1a2e", lineHeight: 1.15 }}>{data.headline}</h1>
+        <div style={{ fontSize: 15, color: "#3a3a52", marginBottom: 18 }}>{data.address}</div>
+
+        {/* Beds / baths / sqft icons */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
+          {[
+            { label: "Bedrooms", value: data.beds, icon: BedDouble },
+            { label: "Bathrooms", value: data.baths, icon: Bath },
+            { label: "Square feet", value: data.sqft.toLocaleString(), icon: Building2 },
+          ].map((s) => (
+            <div key={s.label} style={{ padding: 14, borderRadius: 10, background: "#f6f7fb", border: "1px solid #e2e3ec", textAlign: "center" }}>
+              <s.icon size={18} color="#0d8b75" style={{ marginBottom: 6 }} />
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#1a1a2e" }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: "#55557a", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Narrative */}
+        {data.paragraphs.map((p, i) => (
+          <p key={i} style={{ fontSize: 14, lineHeight: 1.65, color: "#1a1a2e", margin: "0 0 12px" }}>{p}</p>
+        ))}
+
+        {/* Highlights */}
+        <div style={{ marginTop: 18, padding: 16, borderRadius: 10, background: "#fafafd", border: "1px solid #e2e3ec" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+            What you'll love
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {data.highlights.map((h, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, color: "#1a1a2e" }}>
+                <Check size={14} color="#0d8b75" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>{h}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ fontSize: 13, color: "#3a3a52", lineHeight: 1.6, marginTop: 16 }}>
+          <strong>Community:</strong> {data.amenities}
+        </div>
+      </div>
+
+      <DocFooter agentName={data.agentName} />
+    </div>
+  );
+}
+
+function EmailPreviewDoc({ data }) {
+  const dateStr = data.date instanceof Date
+    ? data.date.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+    : data.date;
+  return (
+    <div className="tk-print" style={{ background: "#ffffff", color: "#1a1a2e", borderRadius: 10, overflow: "hidden", fontFamily: docFont, boxShadow: "0 12px 36px rgba(0,0,0,0.45)" }}>
+      {/* Mail client header */}
+      <div style={{ padding: "16px 24px", background: "#fafafd", borderBottom: "1px solid #e2e3ec" }}>
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 12, color: "#1a1a2e" }}>{data.subject}</div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: "50%",
+            background: "linear-gradient(135deg, #5eead4, #818cf8)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#0a0a14", fontSize: 13, fontWeight: 800,
+          }}>{(data.from.name || "?").split(" ").map(s => s[0]).join("")}</div>
+          <div style={{ fontSize: 12, lineHeight: 1.55, color: "#1a1a2e" }}>
+            <div><strong>{data.from.name}</strong> <span style={{ color: "#55557a" }}>&lt;{data.from.email}&gt;</span></div>
+            <div style={{ color: "#55557a" }}>to {data.to.name}{data.to.email ? ` <${data.to.email}>` : ""}</div>
+          </div>
+          <div style={{ marginLeft: "auto", fontSize: 11, color: "#55557a" }}>{dateStr}</div>
+        </div>
+      </div>
+
+      <div style={{ padding: "24px" }}>
+        <p style={{ fontSize: 14, color: "#1a1a2e", margin: "0 0 14px" }}>{data.greeting}</p>
+        {data.paragraphs.map((p, i) => (
+          <p key={i} style={{ fontSize: 14, lineHeight: 1.6, color: "#1a1a2e", margin: "0 0 14px" }}>{p}</p>
+        ))}
+
+        {/* Stats card */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, padding: 16, borderRadius: 10, background: "#f6f7fb", border: "1px solid #e2e3ec", marginBottom: 16 }}>
+          {data.stats.map(s => (
+            <div key={s.label}>
+              <div style={{ fontSize: 10, color: "#55557a", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>{s.label}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#0d8b75", marginTop: 2 }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 14, color: "#1a1a2e", margin: "0 0 8px", fontWeight: 700 }}>{data.listingsHeader}</p>
+        <div style={{ marginBottom: 16 }}>
+          {data.listings.map((L, i) => (
+            <div key={i} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "10px 12px", borderRadius: 8,
+              background: "#fafafd", border: "1px solid #e2e3ec", marginBottom: 6,
+            }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>{L.address}</div>
+                <div style={{ fontSize: 11, color: "#55557a", marginTop: 2 }}>{L.note}</div>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#0d8b75" }}>{L.price}</div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: "#1a1a2e", margin: "0 0 16px" }}>{data.closing}</p>
+
+        <div style={{ marginBottom: 18 }}>
+          <button style={{
+            padding: "12px 20px", borderRadius: 8, border: "none",
+            background: "linear-gradient(135deg, #2dd4bf, #6366f1)",
+            color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer",
+          }}>{data.cta}</button>
+        </div>
+
+        <div style={{ paddingTop: 16, borderTop: "1px solid #e2e3ec", fontSize: 12, lineHeight: 1.55, color: "#55557a" }}>
+          <div style={{ fontWeight: 800, color: "#1a1a2e" }}>{data.signoff.name}</div>
+          <div>{data.signoff.title}</div>
+          <div style={{ marginTop: 4 }}>
+            {data.signoff.phone} · <a href={`mailto:${data.signoff.email}`} style={{ color: "#0d8b75" }}>{data.signoff.email}</a>
+          </div>
+        </div>
+      </div>
+
+      <DocFooter agentName={data.from.name} />
+    </div>
+  );
+}
+
+function LeadScoreDoc({ data }) {
+  if (data.empty) {
+    return (
+      <div className="tk-print" style={{ background: "#ffffff", color: "#1a1a2e", borderRadius: 10, fontFamily: docFont, padding: 28, fontSize: 14, lineHeight: 1.55 }}>
+        {data.message}
+      </div>
+    );
+  }
+
+  // Score circle (SVG ring)
+  const radius = 36;
+  const stroke = 8;
+  const C2pi = 2 * Math.PI * radius;
+  const offset = C2pi * (1 - data.score / 100);
+
+  return (
+    <div className="tk-print" style={{ background: "#ffffff", color: "#1a1a2e", borderRadius: 10, overflow: "hidden", fontFamily: docFont, boxShadow: "0 12px 36px rgba(0,0,0,0.45)" }}>
+      <DocHeader
+        kind="Lead Analysis"
+        title={data.leadName}
+        subtitle={data.classification + " · Predicted intent " + data.intent + "%"}
+        agentName={null}
+        date={new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+      />
+
+      <div style={{ padding: "24px 28px" }}>
+        {/* Score + intent + classification block */}
+        <div style={{ display: "flex", gap: 20, alignItems: "center", marginBottom: 24, flexWrap: "wrap" }}>
+          <div style={{ position: "relative", width: 100, height: 100 }}>
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r={radius} fill="none" stroke="#e2e3ec" strokeWidth={stroke} />
+              <circle cx="50" cy="50" r={radius} fill="none"
+                      stroke={data.classificationColor} strokeWidth={stroke}
+                      strokeDasharray={C2pi} strokeDashoffset={offset}
+                      strokeLinecap="round" transform="rotate(-90 50 50)" />
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#1a1a2e", lineHeight: 1 }}>{data.score}</div>
+              <div style={{ fontSize: 9, color: "#55557a", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, marginTop: 2 }}>SCORE</div>
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <span style={{
+              display: "inline-block", padding: "3px 10px", borderRadius: 9999,
+              background: data.classificationColor + "20", color: data.classificationColor,
+              fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8,
+            }}>{data.classification}</span>
+            <div style={{ fontSize: 12, color: "#55557a", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Predicted intent to act within 90 days</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ flex: 1, height: 10, borderRadius: 5, background: "#e2e3ec", overflow: "hidden" }}>
+                <div style={{ width: data.intent + "%", height: "100%", background: "linear-gradient(90deg, #2dd4bf, #6366f1)" }} />
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#1a1a2e" }}>{data.intent}%</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick facts */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 24 }}>
+          {data.quickFacts.map(f => (
+            <div key={f.label} style={{ padding: 10, borderRadius: 8, background: "#f6f7fb", border: "1px solid #e2e3ec" }}>
+              <div style={{ fontSize: 9, color: "#55557a", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>{f.label}</div>
+              <div style={{ fontSize: 13, color: "#1a1a2e", fontWeight: 700, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Signals */}
+        {data.positive.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+              What's working ({data.positive.length})
+            </div>
+            {data.positive.map((p, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <div style={{ flex: 1, fontSize: 13, color: "#1a1a2e" }}>{p.label}</div>
+                <div style={{ width: 120, height: 6, borderRadius: 3, background: "#e2e3ec", overflow: "hidden" }}>
+                  <div style={{ width: ((p.weight / 25) * 100) + "%", height: "100%", background: "#0d8b75" }} />
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#0d8b75", minWidth: 32, textAlign: "right" }}>+{p.weight}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.negative.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#c83a3a", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+              Friction ({data.negative.length})
+            </div>
+            {data.negative.map((p, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <div style={{ flex: 1, fontSize: 13, color: "#1a1a2e" }}>{p.label}</div>
+                <div style={{ width: 120, height: 6, borderRadius: 3, background: "#e2e3ec", overflow: "hidden" }}>
+                  <div style={{ width: ((Math.abs(p.weight) / 25) * 100) + "%", height: "100%", background: "#c83a3a" }} />
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#c83a3a", minWidth: 32, textAlign: "right" }}>{p.weight}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Recommendation */}
+        <div style={{
+          background: "linear-gradient(135deg, #ecf6f5 0%, #eef0fd 100%)",
+          padding: 18, borderRadius: 10,
+          border: "1px solid #c8e8e0",
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: "#0d8b75", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+            Recommended Next Action
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a2e", marginBottom: 4 }}>{data.recommendation.title}</div>
+          <div style={{ fontSize: 13, color: "#3a3a52", lineHeight: 1.55 }}>{data.recommendation.subtitle}</div>
+        </div>
+      </div>
+
+      <DocFooter />
+    </div>
+  );
+}
+
+function DocRenderer({ data }) {
+  if (!data || typeof data !== "object" || !data.kind) return null;
+  switch (data.kind) {
+    case "market-report":  return <MarketReportDoc data={data} />;
+    case "listing-desc":   return <ListingFlyerDoc data={data} />;
+    case "email-campaign": return <EmailPreviewDoc data={data} />;
+    case "lead-score":     return <LeadScoreDoc data={data} />;
+    default: return null;
+  }
+}
+
+// Flatten a structured AI output into plain text (used by the Copy button)
+function docToPlainText(data) {
+  if (!data) return "";
+  if (typeof data === "string") return data;
+  switch (data.kind) {
+    case "market-report":
+      return [
+        `${data.market} Market Report — ${data.date}`,
+        ``,
+        data.summary,
+        ``,
+        `Key numbers:`,
+        `  · Median price: ${data.stats.avgPrice} (${data.stats.priceChange})`,
+        `  · Active inventory: ${data.stats.inventory} (${data.stats.inventoryChange})`,
+        `  · Days on market: ${data.stats.dom} (${data.stats.domChange})`,
+        `  · New listings: ${data.stats.newListings}`,
+        ``,
+        `What's moving the market:`,
+        ...data.trends.map(t => `  · ${t.heading}\n    ${t.text}`),
+        ``,
+        `Forecast: ${data.forecast}`,
+        ``,
+        `Prepared by ${data.agentName} · triskope`,
+      ].join("\n");
+    case "listing-desc":
+      return [
+        data.headline,
+        `${data.address} · ${data.community}`,
+        `${formatMoney(data.price)} · ${data.beds}BR / ${data.baths}BA · ${data.sqft.toLocaleString()} sqft`,
+        ``,
+        ...data.paragraphs,
+        ``,
+        `What you'll love:`,
+        ...data.highlights.map(h => `  · ${h}`),
+        ``,
+        `Community: ${data.amenities}`,
+      ].join("\n");
+    case "email-campaign":
+      return [
+        `Subject: ${data.subject}`,
+        `From: ${data.from.name} <${data.from.email}>`,
+        `To:   ${data.to.name}`,
+        ``,
+        data.greeting,
+        ``,
+        ...data.paragraphs,
+        ``,
+        ...data.stats.map(s => `  · ${s.label}: ${s.value}`),
+        ``,
+        data.listingsHeader,
+        ...data.listings.map(L => `  · ${L.address} — ${L.price} (${L.note})`),
+        ``,
+        data.closing,
+        ``,
+        `— ${data.signoff.name}`,
+        `${data.signoff.title}`,
+        `${data.signoff.phone} · ${data.signoff.email}`,
+      ].join("\n");
+    case "lead-score":
+      if (data.empty) return data.message;
+      return [
+        `AI Lead Analysis — ${data.leadName}`,
+        `${data.classification} · Score ${data.score}/100 · Intent ${data.intent}%`,
+        ``,
+        `What's working:`,
+        ...data.positive.map(p => `  + ${p.label} (+${p.weight})`),
+        ``,
+        `Friction:`,
+        ...data.negative.map(p => `  - ${p.label} (${p.weight})`),
+        ``,
+        `Recommended next action: ${data.recommendation.title}`,
+        `${data.recommendation.subtitle}`,
+      ].join("\n");
+    default:
+      return JSON.stringify(data, null, 2);
+  }
+}
 
 // ============================================================
 // MAIN APP
@@ -701,12 +1343,17 @@ export default function App() {
     return () => clearInterval(phaseTimer.current);
   }, [aiBusy, aiType, aiCtx]);
 
-  // Stream characters
+  // Stream characters (only for legacy string outputs — structured docs
+  // are rendered all at once as a polished document)
   useEffect(() => {
     if (!aiStreaming || !aiOut) return;
+    if (typeof aiOut !== "string") {
+      setAiStreaming(false);
+      return;
+    }
     let i = 0;
     streamTimer.current = setInterval(() => {
-      i += 3; // 3 chars per tick keeps it fast on long outputs
+      i += 3;
       if (i >= aiOut.length) {
         setAiStreamed(aiOut);
         setAiStreaming(false);
@@ -734,7 +1381,7 @@ export default function App() {
   };
 
   const copyAI = () => {
-    const text = aiOut || aiStreamed;
+    const text = typeof aiOut === "object" ? docToPlainText(aiOut) : (aiOut || aiStreamed);
     if (!text) return;
     try {
       navigator.clipboard.writeText(text);
@@ -744,8 +1391,15 @@ export default function App() {
     }
   };
 
+  const printAI = () => {
+    // Adds the document to the DOM under a special print container,
+    // triggers window.print(), then restores. Done by simply triggering
+    // print — the @media print stylesheet hides everything except .tk-print.
+    window.print();
+  };
+
   const skipStreaming = () => {
-    if (aiStreaming && aiOut) {
+    if (aiStreaming && aiOut && typeof aiOut === "string") {
       setAiStreamed(aiOut);
       setAiStreaming(false);
     }
@@ -3100,6 +3754,33 @@ export default function App() {
         .tk-stagger > *:nth-child(5) { animation-delay: 240ms; }
         .tk-stagger > *:nth-child(6) { animation-delay: 300ms; }
         button:focus-visible, a:focus-visible { outline: 2px solid ${C.teal}; outline-offset: 2px; }
+
+        /* Print: only the AI document prints. Everything else is hidden. */
+        @media print {
+          @page { margin: 0.4in; }
+          html, body { background: #ffffff !important; }
+          body * { visibility: hidden !important; }
+          .tk-print, .tk-print * { visibility: visible !important; }
+          .tk-print {
+            position: absolute !important;
+            left: 0; top: 0;
+            width: 100% !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+          }
+          .tk-ai-backdrop {
+            background: transparent !important;
+            position: static !important;
+          }
+          .tk-ai-panel {
+            background: #ffffff !important;
+            border: none !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
       `}</style>
 
       {/* Mobile header */}
@@ -3227,13 +3908,13 @@ export default function App() {
 
       {/* AI Panel */}
       {aiOpen && (
-        <div onClick={() => setAiOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "flex-end", zIndex: 400 }}>
+        <div onClick={() => setAiOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "flex-end", zIndex: 400 }} className="tk-ai-backdrop">
           <div onClick={e => e.stopPropagation()} style={{
-            width: isMobile ? "100%" : 520, maxWidth: "100%",
+            width: isMobile ? "100%" : (typeof aiOut === "object" ? 760 : 520), maxWidth: "100%",
             background: C.bgCard, borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
             padding: isMobile ? 16 : 24, overflow: "auto",
             display: "flex", flexDirection: "column",
-          }}>
+          }} className="tk-ai-panel">
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <Brain size={20} color={C.teal} />
               <div>
@@ -3254,7 +3935,7 @@ export default function App() {
             {aiBusy ? (
               <div style={{ padding: "20px 0", flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, color: C.teal }}>
-                  <Sparkles size={18} className="" />
+                  <Sparkles size={18} />
                   <span style={{ fontSize: 14, fontWeight: 600 }}>Thinking...</span>
                 </div>
                 {currentPhases.map((p, i) => (
@@ -3276,6 +3957,26 @@ export default function App() {
                   </div>
                 ))}
               </div>
+            ) : typeof aiOut === "object" && aiOut?.kind ? (
+              <>
+                <div className="tk-rise" style={{ flex: 1 }}>
+                  <DocRenderer data={aiOut} />
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                  <button onClick={printAI} style={{ ...aiActionBtn(false), background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, border: "none", color: "#0a0a14", fontWeight: 700 }}>
+                    <FileText size={14} /> Print / Save PDF
+                  </button>
+                  <button onClick={copyAI} style={aiActionBtn(false)}>
+                    <Copy size={14} /> Copy text
+                  </button>
+                  <button onClick={regenerateAI} style={aiActionBtn(false)}>
+                    <RefreshCw size={14} /> Regenerate
+                  </button>
+                  <button onClick={() => { setToast({ message: "Saved to drafts", kind: "success" }); }} style={aiActionBtn(false)}>
+                    <Check size={14} /> Save
+                  </button>
+                </div>
+              </>
             ) : (
               <>
                 <div onClick={skipStreaming}
