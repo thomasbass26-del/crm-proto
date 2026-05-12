@@ -5,7 +5,9 @@ import {
   TrendingUp, Mail, Phone, Globe, Eye, Target, BarChart3, ExternalLink,
   Copy, Check, DollarSign, Award, MapPin, Sparkles, Menu, X,
   Calendar, Clock, MessageSquare, RefreshCw, Search, Tag, Bell, Activity, Inbox,
-  Layers, GripVertical, ArrowUpDown, ChevronDown, CalendarPlus, Trash2, CheckCircle2
+  Layers, GripVertical, ArrowUpDown, ChevronDown, CalendarPlus, Trash2, CheckCircle2,
+  CalendarDays, Building2, BedDouble, Bath, AlertCircle, CheckCheck, ChevronUp,
+  Filter as FilterIcon, Bookmark, Lightbulb
 } from "lucide-react";
 
 const C = {
@@ -258,6 +260,55 @@ const SORT_OPTIONS = [
   { id: "recent", label: "Most recent" },
   { id: "name",   label: "Name (A → Z)" },
 ];
+
+// Grand Strand listing data — coordinates roughly approximate (NMB north, Pawleys south)
+const LISTINGS = [
+  { id: 1,  address: "1247 Ocean Blvd #802",        community: "Oceanfront",       area: "Myrtle Beach",       price: 485000,  beds: 3, baths: 2,   sqft: 1456, type: "Condo",         status: "active",  days: 4,  agent: "Sarah Mitchell",  lat: 33.690, lng: -78.880, photo: "🌊" },
+  { id: 2,  address: "142 Springs Ave",             community: "Litchfield Beach", area: "Pawleys Island",     price: 625000,  beds: 4, baths: 3,   sqft: 2890, type: "Single Family", status: "active",  days: 2,  agent: "Sarah Mitchell",  lat: 33.495, lng: -79.080, photo: "🏡" },
+  { id: 3,  address: "88 Magnolia Lake Ct",         community: "Barefoot Resort",  area: "North Myrtle Beach", price: 545000,  beds: 4, baths: 3,   sqft: 2640, type: "Single Family", status: "active",  days: 9,  agent: "James Parker",    lat: 33.815, lng: -78.715, photo: "⛳" },
+  { id: 4,  address: "415 Cypress Way",             community: "Carolina Forest",  area: "Myrtle Beach",       price: 358000,  beds: 4, baths: 2.5, sqft: 2180, type: "Single Family", status: "active",  days: 14, agent: "Marcus Johnson",  lat: 33.760, lng: -78.910, photo: "🌲" },
+  { id: 5,  address: "9 Beach Bridge Rd",           community: "Litchfield Beach", area: "Pawleys Island",     price: 1250000, beds: 5, baths: 4.5, sqft: 4120, type: "Single Family", status: "active",  days: 1,  agent: "Sarah Mitchell",  lat: 33.485, lng: -79.085, photo: "🏖️" },
+  { id: 6,  address: "2210 N Ocean Blvd #1402",     community: "Oceanfront",       area: "Myrtle Beach",       price: 339000,  beds: 2, baths: 2,   sqft: 1180, type: "Condo",         status: "pending", days: 18, agent: "Sarah Mitchell",  lat: 33.730, lng: -78.860, photo: "🌅" },
+  { id: 7,  address: "147 Grande Dunes Pkwy",       community: "Grande Dunes",     area: "Myrtle Beach",       price: 1485000, beds: 5, baths: 4.5, sqft: 4680, type: "Single Family", status: "active",  days: 22, agent: "Sarah Mitchell",  lat: 33.755, lng: -78.835, photo: "🏛️" },
+  { id: 8,  address: "3 Sandhill Crane Dr",         community: "Prince Creek",     area: "Murrells Inlet",     price: 298000,  beds: 3, baths: 2,   sqft: 1820, type: "Single Family", status: "active",  days: 5,  agent: "Amy Rodriguez",   lat: 33.595, lng: -79.005, photo: "🌾" },
+  { id: 9,  address: "523 Howard Ave",              community: "Market Common",    area: "Myrtle Beach",       price: 425000,  beds: 3, baths: 2.5, sqft: 1980, type: "Townhouse",     status: "active",  days: 7,  agent: "Lisa Chen",       lat: 33.665, lng: -78.910, photo: "🏘️" },
+  { id: 10, address: "118 Magnolia Trail",          community: "Carolina Forest",  area: "Myrtle Beach",       price: 312000,  beds: 3, baths: 2,   sqft: 1640, type: "Single Family", status: "active",  days: 11, agent: "Marcus Johnson",  lat: 33.745, lng: -78.945, photo: "🌳" },
+  { id: 11, address: "44 Pelican Pointe Dr",        community: "Barefoot Resort",  area: "North Myrtle Beach", price: 729000,  beds: 4, baths: 4,   sqft: 3210, type: "Single Family", status: "active",  days: 3,  agent: "James Parker",    lat: 33.820, lng: -78.710, photo: "⛳" },
+  { id: 12, address: "8 Inlet Cove Way",            community: "Murrells Inlet",   area: "Murrells Inlet",     price: 545000,  beds: 3, baths: 3,   sqft: 2240, type: "Single Family", status: "active",  days: 6,  agent: "James Parker",    lat: 33.555, lng: -79.030, photo: "⛵" },
+  { id: 13, address: "1024 N Ocean Blvd #506",      community: "Oceanfront",       area: "North Myrtle Beach", price: 412000,  beds: 2, baths: 2,   sqft: 1320, type: "Condo",         status: "active",  days: 16, agent: "James Parker",    lat: 33.810, lng: -78.715, photo: "🌊" },
+  { id: 14, address: "67 Litchfield Country Club",  community: "Litchfield Beach", area: "Pawleys Island",     price: 489000,  beds: 3, baths: 2.5, sqft: 2080, type: "Single Family", status: "active",  days: 8,  agent: "Sarah Mitchell",  lat: 33.490, lng: -79.090, photo: "⛳" },
+  { id: 15, address: "31 Willow Bend Ct",           community: "Carolina Forest",  area: "Conway",             price: 268000,  beds: 3, baths: 2,   sqft: 1480, type: "Single Family", status: "active",  days: 19, agent: "Marcus Johnson",  lat: 33.835, lng: -79.045, photo: "🌳" },
+  { id: 16, address: "207 Surfwood Dr",             community: "Surfside Beach",   area: "Surfside Beach",     price: 385000,  beds: 3, baths: 2,   sqft: 1720, type: "Single Family", status: "active",  days: 4,  agent: "Lisa Chen",       lat: 33.605, lng: -78.965, photo: "🏖️" },
+  { id: 17, address: "92 Plantation Dr",            community: "Prince Creek",     area: "Murrells Inlet",     price: 358000,  beds: 4, baths: 2.5, sqft: 2350, type: "Single Family", status: "active",  days: 12, agent: "Amy Rodriguez",   lat: 33.585, lng: -79.015, photo: "🌾" },
+  { id: 18, address: "780 Grande Dunes Way #305",   community: "Grande Dunes",     area: "Myrtle Beach",       price: 695000,  beds: 3, baths: 3,   sqft: 2120, type: "Condo",         status: "active",  days: 2,  agent: "Sarah Mitchell",  lat: 33.760, lng: -78.840, photo: "🏛️" },
+  { id: 19, address: "55 Boardwalk Drive",          community: "Market Common",    area: "Myrtle Beach",       price: 612000,  beds: 4, baths: 3.5, sqft: 2840, type: "Single Family", status: "active",  days: 25, agent: "Lisa Chen",       lat: 33.670, lng: -78.915, photo: "🏙️" },
+  { id: 20, address: "12 Heron Lake Way",           community: "Carolina Forest",  area: "Myrtle Beach",       price: 412000,  beds: 4, baths: 3,   sqft: 2470, type: "Single Family", status: "active",  days: 8,  agent: "Marcus Johnson",  lat: 33.770, lng: -78.925, photo: "🦩" },
+];
+
+const LISTING_TYPES = ["Single Family", "Condo", "Townhouse"];
+const LISTING_COMMUNITIES = ["Oceanfront", "Barefoot Resort", "Grande Dunes", "Carolina Forest", "Market Common", "Litchfield Beach", "Prince Creek", "Murrells Inlet", "Surfside Beach"];
+
+// Static notification feed (in-memory; users mark read interactively)
+const NOTIFICATIONS = [
+  { id: 1,  type: "new-lead",   title: "New lead — Anthony Russo",      text: "Submitted form via Market Common community page",       time: "12 min ago",  leadId: 12, defaultRead: false, color: "#818cf8" },
+  { id: 2,  type: "hot-alert",  title: "Karen Lee is back on the site", text: "Re-viewed 142 Springs Ave for the 3rd time today",      time: "47 min ago",  leadId: 5,  defaultRead: false, color: "#ef4444" },
+  { id: 3,  type: "task-due",   title: "Follow-up due today",            text: "Send shortlist to the Fosters (lease ends in 30d)",     time: "2h ago",      leadId: 9,  defaultRead: false, color: "#f59e0b" },
+  { id: 4,  type: "ai-suggest", title: "AI suggestion",                  text: "Tom Baker's engagement dropped — try a re-engagement email", time: "3h ago",  leadId: 8,  defaultRead: false, color: "#a78bfa" },
+  { id: 5,  type: "showing",    title: "Showing confirmed",              text: "James booked Saturday tour for the Fosters in NMB",     time: "yesterday",   leadId: 9,  defaultRead: false, color: "#10b981" },
+  { id: 6,  type: "new-lead",   title: "New lead — Steve Chen",          text: "Just signed up. Auto-qualifying based on session signals", time: "yesterday", leadId: 6,  defaultRead: true,  color: "#818cf8" },
+  { id: 7,  type: "ai-suggest", title: "AI suggestion",                  text: "Robert Williams is likely to write an offer in 30-60 days — move to Showing?", time: "yesterday", leadId: 1, defaultRead: true, color: "#a78bfa" },
+  { id: 8,  type: "hot-alert",  title: "Pre-approval cleared",           text: "Marcus & Tonya Reed underwriting cleared — move to Qualified", time: "2 days ago", leadId: 11, defaultRead: true, color: "#ef4444" },
+  { id: 9,  type: "task-due",   title: "Open house this Saturday",       text: "1247 Ocean Blvd #802 — 12-3pm",                          time: "2 days ago",  leadId: null, defaultRead: true, color: "#f59e0b" },
+  { id: 10, type: "ai-suggest", title: "Market insight",                 text: "Inventory in Pawleys Island dropped 8% this month — strong sellers' window", time: "3 days ago", leadId: null, defaultRead: true, color: "#a78bfa" },
+];
+
+const NOTIFICATION_ICONS = {
+  "new-lead":   Users,
+  "hot-alert":  AlertCircle,
+  "task-due":   CalendarPlus,
+  "ai-suggest": Lightbulb,
+  "showing":    MapPin,
+};
 
 // ============================================================
 // AI: thinking phases + content generators (context-aware)
@@ -552,6 +603,21 @@ export default function App() {
   const [draggingId, setDraggingId] = useState(null);
   const [stageMenuFor, setStageMenuFor] = useState(null); // leadId whose stage menu is open
 
+  // Phase 3: Listings, Tasks, Inbox
+  const [selectedListing, setSelectedListing] = useState(null);
+  const [listingSearch, setListingSearch] = useState("");
+  const [listingCommunity, setListingCommunity] = useState("all");
+  const [listingType, setListingType] = useState("all");
+  const [listingBeds, setListingBeds] = useState(0);
+  const [listingMinPrice, setListingMinPrice] = useState("");
+  const [listingMaxPrice, setListingMaxPrice] = useState("");
+  const [hoveredListing, setHoveredListing] = useState(null);
+  const [notifReads, setNotifReads] = useState(() => {
+    const m = {};
+    NOTIFICATIONS.forEach(n => { if (n.defaultRead) m[n.id] = true; });
+    return m;
+  });
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -696,10 +762,68 @@ export default function App() {
     return acc;
   }, {});
 
+  // Phase 3: aggregations
+  const allTasks = Object.entries(leadTasks).flatMap(([lid, tasks]) =>
+    tasks.map(t => ({ ...t, leadId: Number(lid), lead: LEADS.find(l => l.id === Number(lid)) }))
+  );
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const taskBuckets = {
+    overdue:   allTasks.filter(t => !t.done && t.due && t.due < todayStr),
+    today:     allTasks.filter(t => !t.done && t.due === todayStr),
+    upcoming:  allTasks.filter(t => !t.done && t.due && t.due > todayStr),
+    nodue:     allTasks.filter(t => !t.done && !t.due),
+    completed: allTasks.filter(t => t.done).slice(0, 12),
+  };
+
+  const filteredListings = LISTINGS.filter(L => {
+    if (listingCommunity !== "all" && L.community !== listingCommunity) return false;
+    if (listingType !== "all" && L.type !== listingType) return false;
+    if (listingBeds && L.beds < listingBeds) return false;
+    if (listingMinPrice && L.price < Number(listingMinPrice)) return false;
+    if (listingMaxPrice && L.price > Number(listingMaxPrice)) return false;
+    if (listingSearch.trim()) {
+      const q = listingSearch.toLowerCase();
+      if (!L.address.toLowerCase().includes(q) &&
+          !L.community.toLowerCase().includes(q) &&
+          !L.area.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const unreadNotifs = NOTIFICATIONS.filter(n => !notifReads[n.id]).length;
+
+  const markNotifRead = (id) => setNotifReads(prev => ({ ...prev, [id]: true }));
+  const markAllNotifsRead = () => {
+    const m = {};
+    NOTIFICATIONS.forEach(n => { m[n.id] = true; });
+    setNotifReads(m);
+    setToast({ message: "All caught up", kind: "success" });
+  };
+  const jumpToLead = (leadId) => {
+    const lead = LEADS.find(l => l.id === leadId);
+    if (lead) {
+      setSelectedLead(lead);
+      setView("leads");
+      if (isMobile) setSidebarOpen(false);
+    }
+  };
+  const formatPrice = (p) => "$" + (p / 1000).toFixed(0) + "K";
+  const formatDate = (d) => {
+    if (!d) return "";
+    try {
+      const dt = new Date(d + "T00:00:00");
+      return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: dt.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+    } catch { return d; }
+  };
+
   const nav = [
     { id: "dashboard", label: "Dashboard", icon: Home },
+    { id: "inbox", label: "Inbox", icon: Bell },
     { id: "leads", label: "Leads", icon: Users },
     { id: "pipeline", label: "Pipeline", icon: Layers },
+    { id: "tasks", label: "Tasks", icon: CalendarDays },
+    { id: "listings", label: "Listings", icon: Building2 },
     { id: "reports", label: "Market Reports", icon: FileText },
     { id: "communities", label: "Communities", icon: Map },
     { id: "agents", label: "Agents", icon: Award },
@@ -1439,10 +1563,461 @@ export default function App() {
     </div>
   );
 
+  // ----- INBOX -----
+  const InboxView = () => {
+    const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+    const shown = NOTIFICATIONS.filter(n => !showUnreadOnly || !notifReads[n.id]);
+    return (
+      <div>
+        <div style={pageHeader(isMobile)}>
+          <div>
+            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Inbox</h1>
+            <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>
+              {unreadNotifs > 0 ? `${unreadNotifs} unread • ${NOTIFICATIONS.length} total` : "All caught up"}
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setShowUnreadOnly(o => !o)} style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "10px 14px",
+              background: showUnreadOnly ? C.teal + "20" : C.bg,
+              border: `1px solid ${showUnreadOnly ? C.teal + "55" : C.border}`,
+              borderRadius: 8, color: showUnreadOnly ? C.teal : C.text,
+              fontSize: 13, fontWeight: 500, cursor: "pointer", minHeight: 44,
+            }}>
+              <FilterIcon size={14} /> {showUnreadOnly ? "Unread only" : "All"}
+            </button>
+            <button onClick={markAllNotifsRead} disabled={unreadNotifs === 0} style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "10px 14px",
+              background: C.bg, border: `1px solid ${C.border}`,
+              borderRadius: 8, color: C.text, fontSize: 13, fontWeight: 500,
+              cursor: unreadNotifs ? "pointer" : "not-allowed", opacity: unreadNotifs ? 1 : 0.5, minHeight: 44,
+            }}>
+              <CheckCheck size={14} /> Mark all read
+            </button>
+          </div>
+        </div>
+
+        {shown.length === 0 ? (
+          <Card><EmptyState icon={Inbox} title="Inbox zero" message="Everything has been read. We'll surface new items here as they come in." /></Card>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {shown.map(n => {
+              const NIcon = NOTIFICATION_ICONS[n.type] || Bell;
+              const isUnread = !notifReads[n.id];
+              return (
+                <Card key={n.id} style={{
+                  padding: 14,
+                  borderLeft: `3px solid ${isUnread ? n.color : C.border}`,
+                  background: isUnread ? C.bgCard : C.bg,
+                }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 10,
+                      background: n.color + "20", display: "flex",
+                      alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      <NIcon size={18} color={n.color} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{n.title}</span>
+                        {isUnread && <span style={{ width: 6, height: 6, borderRadius: 3, background: n.color }} />}
+                      </div>
+                      <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>{n.text}</div>
+                      <div style={{ display: "flex", gap: 12, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 11, color: C.textDim }}>{n.time}</span>
+                        {n.leadId && (
+                          <button onClick={() => { jumpToLead(n.leadId); markNotifRead(n.id); }} style={{
+                            background: "none", border: "none", color: C.teal,
+                            fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0,
+                          }}>View lead →</button>
+                        )}
+                        {isUnread && (
+                          <button onClick={() => markNotifRead(n.id)} style={{
+                            background: "none", border: "none", color: C.textMuted,
+                            fontSize: 12, fontWeight: 500, cursor: "pointer", padding: 0,
+                          }}>Mark read</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ----- TASKS / CALENDAR -----
+  const TasksView = () => {
+    const sections = [
+      { id: "overdue",   title: "Overdue",          tasks: taskBuckets.overdue,   color: C.red,     icon: AlertCircle },
+      { id: "today",     title: "Due today",        tasks: taskBuckets.today,     color: C.amber,   icon: CalendarDays },
+      { id: "upcoming",  title: "Upcoming",         tasks: taskBuckets.upcoming,  color: C.blue,    icon: Calendar },
+      { id: "nodue",     title: "No due date",      tasks: taskBuckets.nodue,     color: C.purple,  icon: Bookmark },
+      { id: "completed", title: "Recently completed", tasks: taskBuckets.completed, color: C.teal,  icon: CheckCheck },
+    ];
+    const totalOpen = taskBuckets.overdue.length + taskBuckets.today.length + taskBuckets.upcoming.length + taskBuckets.nodue.length;
+
+    return (
+      <div>
+        <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Tasks & follow-ups</h1>
+        <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 16px" }}>
+          {totalOpen === 0 ? "No open follow-ups yet — schedule one from any lead's detail page" : `${totalOpen} open across all leads`}
+        </p>
+
+        <div style={{ display: "flex", gap: isMobile ? 8 : 12, marginBottom: 16, flexWrap: "wrap" }}>
+          <StatCard icon={AlertCircle} label="Overdue"   value={taskBuckets.overdue.length}  color={C.red}    isMobile={isMobile} />
+          <StatCard icon={CalendarDays} label="Today"     value={taskBuckets.today.length}    color={C.amber}  isMobile={isMobile} />
+          <StatCard icon={Calendar} label="Upcoming"  value={taskBuckets.upcoming.length} color={C.blue}   isMobile={isMobile} />
+          <StatCard icon={CheckCircle2} label="Completed" value={allTasks.filter(t => t.done).length} color={C.teal} isMobile={isMobile} />
+        </div>
+
+        {totalOpen === 0 && taskBuckets.completed.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={CalendarPlus}
+              title="No follow-ups scheduled yet"
+              message="Open any lead, then add a follow-up under the Follow-ups section. It'll show up here grouped by due date."
+              action={
+                <button onClick={() => setView("leads")} style={{ ...btnPrimary(), marginTop: 16 }}>
+                  Go to leads
+                </button>
+              }
+            />
+          </Card>
+        ) : (
+          sections.map(s => (
+            s.tasks.length === 0 ? null : (
+              <Card key={s.id} style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <s.icon size={16} color={s.color} />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{s.title}</span>
+                  <span style={{ fontSize: 11, color: C.textDim, marginLeft: "auto" }}>{s.tasks.length}</span>
+                </div>
+                {s.tasks.map(t => (
+                  <div key={`${t.leadId}-${t.id}`} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 0", borderBottom: `1px solid ${C.border}`,
+                  }}>
+                    <button onClick={() => toggleTask(t.leadId, t.id)} style={{
+                      background: "none", border: "none", padding: 4, cursor: "pointer",
+                      display: "flex", alignItems: "center", color: t.done ? C.teal : C.textDim,
+                    }}>
+                      {t.done ? <CheckCircle2 size={18} /> : <div style={{ width: 16, height: 16, borderRadius: "50%", border: `1.5px solid ${C.textDim}` }} />}
+                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 13,
+                        color: t.done ? C.textDim : C.text,
+                        textDecoration: t.done ? "line-through" : "none",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>{t.text}</div>
+                      <div style={{ fontSize: 11, color: C.textDim, marginTop: 2, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {t.lead && (
+                          <button onClick={() => jumpToLead(t.leadId)} style={{
+                            background: "none", border: "none", color: C.teal,
+                            fontSize: 11, cursor: "pointer", padding: 0,
+                          }}>{t.lead.name}</button>
+                        )}
+                        <span>Due {t.due === todayStr ? "today" : t.due ? formatDate(t.due) : "—"}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => deleteTask(t.leadId, t.id)} style={{
+                      background: "none", border: "none", padding: 6, cursor: "pointer",
+                      color: C.textDim, display: "flex", alignItems: "center",
+                    }} aria-label="Delete task"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+              </Card>
+            )
+          ))
+        )}
+      </div>
+    );
+  };
+
+  // ----- LISTINGS -----
+  const latLngToSvg = (lat, lng) => {
+    const y = 480 - ((lat - 33.485) / 0.335) * 440;
+    const x = ((lng - (-79.09)) / 0.38) * 240 + 80;
+    return { x: Math.max(20, Math.min(360, x)), y: Math.max(20, Math.min(580, y)) };
+  };
+
+  const ListingMap = ({ items }) => (
+    <svg viewBox="0 0 400 600" style={{ width: "100%", height: "100%", display: "block", borderRadius: 10, background: C.bg }}>
+      <defs>
+        <linearGradient id="oceanGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={C.bg} />
+          <stop offset="40%" stopColor="#0e1838" />
+          <stop offset="100%" stopColor="#13234b" />
+        </linearGradient>
+        <linearGradient id="landGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0f1a2a" />
+          <stop offset="100%" stopColor="#13202f" />
+        </linearGradient>
+      </defs>
+      {/* Land */}
+      <rect x="0" y="0" width="270" height="600" fill="url(#landGrad)" />
+      {/* Coast curve (rough) */}
+      <path d="M 270 0 Q 280 60 270 130 Q 260 220 280 320 Q 300 420 280 510 Q 270 580 280 600 L 400 600 L 400 0 Z" fill="url(#oceanGrad)" />
+      {/* Coast line */}
+      <path d="M 270 0 Q 280 60 270 130 Q 260 220 280 320 Q 300 420 280 510 Q 270 580 280 600"
+            fill="none" stroke={C.teal + "33"} strokeWidth="1" />
+      {/* Area labels */}
+      <text x="200" y="50"  fill={C.textDim} fontSize="11" textAnchor="middle">N. Myrtle Beach</text>
+      <text x="200" y="225" fill={C.textDim} fontSize="11" textAnchor="middle">Myrtle Beach</text>
+      <text x="180" y="380" fill={C.textDim} fontSize="11" textAnchor="middle">Murrells Inlet</text>
+      <text x="180" y="510" fill={C.textDim} fontSize="11" textAnchor="middle">Pawleys Island</text>
+      <text x="345" y="320" fill={C.teal + "77"} fontSize="11" fontStyle="italic" textAnchor="middle">Atlantic</text>
+      {/* Markers */}
+      {items.map(L => {
+        const { x, y } = latLngToSvg(L.lat, L.lng);
+        const isActive = hoveredListing === L.id || selectedListing?.id === L.id;
+        return (
+          <g key={L.id}
+             onMouseEnter={() => setHoveredListing(L.id)}
+             onMouseLeave={() => setHoveredListing(null)}
+             onClick={() => setSelectedListing(L)}
+             style={{ cursor: "pointer" }}>
+            <circle cx={x} cy={y} r={isActive ? 9 : 6} fill={C.teal} opacity={isActive ? 0.4 : 0.2} />
+            <circle cx={x} cy={y} r={isActive ? 5 : 4} fill={C.teal} stroke={C.bg} strokeWidth="1.5" />
+            {isActive && (
+              <g>
+                <rect x={x + 10} y={y - 16} width={110} height={28} rx={6} fill={C.bgCard} stroke={C.teal + "55"} />
+                <text x={x + 16} y={y - 3} fill={C.text} fontSize="10" fontWeight="600">{formatPrice(L.price)}</text>
+                <text x={x + 16} y={y + 8} fill={C.textMuted} fontSize="9">{L.beds}BR · {L.baths}BA</text>
+              </g>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+
+  const ListingCard = ({ L }) => (
+    <Card
+      style={{ padding: 0, overflow: "hidden", borderColor: hoveredListing === L.id ? C.teal + "66" : C.border }}
+      onClick={() => setSelectedListing(L)}
+    >
+      <div
+        onMouseEnter={() => setHoveredListing(L.id)}
+        onMouseLeave={() => setHoveredListing(null)}
+      >
+        {/* Photo placeholder */}
+        <div style={{
+          height: 120,
+          background: `linear-gradient(135deg, ${C.teal}22, ${C.blue}22, ${C.purple}22)`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 48, position: "relative",
+        }}>
+          {L.photo}
+          {L.status === "pending" && (
+            <span style={{
+              position: "absolute", top: 10, right: 10,
+              padding: "2px 8px", borderRadius: 6,
+              background: C.amber + "30", color: C.amber,
+              fontSize: 10, fontWeight: 700,
+            }}>PENDING</span>
+          )}
+          {L.days <= 5 && (
+            <span style={{
+              position: "absolute", top: 10, left: 10,
+              padding: "2px 8px", borderRadius: 6,
+              background: C.red + "30", color: C.red,
+              fontSize: 10, fontWeight: 700,
+            }}>NEW</span>
+          )}
+        </div>
+        <div style={{ padding: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{formatPrice(L.price)}</span>
+            <span style={{ fontSize: 11, color: C.textDim }}>{L.days}d on market</span>
+          </div>
+          <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>{L.address}</div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 10 }}>{L.community} • {L.area}</div>
+          <div style={{ display: "flex", gap: 12, fontSize: 12, color: C.textMuted, alignItems: "center" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><BedDouble size={12} /> {L.beds}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Bath size={12} /> {L.baths}</span>
+            <span>{L.sqft.toLocaleString()} sqft</span>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+
+  const ListingsView = () => (
+    <div>
+      <div style={pageHeader(isMobile)}>
+        <div>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Listings</h1>
+          <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Active Grand Strand inventory · MLS auto-sync</p>
+        </div>
+      </div>
+
+      {/* Filter toolbar */}
+      <Card style={{ marginBottom: 16, padding: isMobile ? 12 : 16 }}>
+        <div style={{ display: "grid", gap: 12, gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr 1fr 1fr" }}>
+          <div style={{ position: "relative" }}>
+            <Search size={14} color={C.textDim} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+            <input
+              type="text" value={listingSearch}
+              onChange={e => setListingSearch(e.target.value)}
+              placeholder="Search address, community, area…"
+              style={{ width: "100%", padding: "10px 12px 10px 36px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, outline: "none", minHeight: 44 }}
+            />
+          </div>
+          <select value={listingCommunity} onChange={e => setListingCommunity(e.target.value)} style={selectStyle()}>
+            <option value="all">All communities</option>
+            {LISTING_COMMUNITIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={listingType} onChange={e => setListingType(e.target.value)} style={selectStyle()}>
+            <option value="all">Any type</option>
+            {LISTING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select value={listingBeds} onChange={e => setListingBeds(Number(e.target.value))} style={selectStyle()}>
+            <option value="0">Any beds</option>
+            <option value="2">2+ beds</option>
+            <option value="3">3+ beds</option>
+            <option value="4">4+ beds</option>
+            <option value="5">5+ beds</option>
+          </select>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input type="number" value={listingMinPrice} onChange={e => setListingMinPrice(e.target.value)} placeholder="Min $" style={priceInputStyle()} />
+            <input type="number" value={listingMaxPrice} onChange={e => setListingMaxPrice(e.target.value)} placeholder="Max $" style={priceInputStyle()} />
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 10 }}>
+          Showing {filteredListings.length} of {LISTINGS.length} listings
+          {(listingSearch || listingCommunity !== "all" || listingType !== "all" || listingBeds || listingMinPrice || listingMaxPrice) && (
+            <button onClick={() => {
+              setListingSearch(""); setListingCommunity("all"); setListingType("all");
+              setListingBeds(0); setListingMinPrice(""); setListingMaxPrice("");
+            }} style={{
+              marginLeft: 12, background: "none", border: "none", color: C.teal,
+              cursor: "pointer", fontSize: 12, fontWeight: 600,
+            }}>Clear filters</button>
+          )}
+        </div>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr", gap: 16 }}>
+        {/* Listings grid */}
+        <div>
+          {filteredListings.length === 0 ? (
+            <Card><EmptyState icon={Search} title="No listings match" message="Adjust filters to broaden the search." /></Card>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+              {filteredListings.map(L => <ListingCard key={L.id} L={L} />)}
+            </div>
+          )}
+        </div>
+
+        {/* Map */}
+        <Card style={{ padding: 12, position: isMobile ? "static" : "sticky", top: 16, height: isMobile ? 360 : 600 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <MapPin size={14} color={C.teal} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Map view</span>
+            <span style={{ fontSize: 11, color: C.textDim, marginLeft: "auto" }}>{filteredListings.length} markers</span>
+          </div>
+          <div style={{ height: "calc(100% - 28px)" }}>
+            <ListingMap items={filteredListings} />
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+
+  const ListingDetailModal = () => {
+    if (!selectedListing) return null;
+    const L = selectedListing;
+    return (
+      <div onClick={() => setSelectedListing(null)} style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 450, padding: isMobile ? 0 : 20,
+      }}>
+        <div onClick={e => e.stopPropagation()} style={{
+          background: C.bgCard, borderRadius: isMobile ? 0 : 14,
+          width: isMobile ? "100%" : "100%", maxWidth: 560,
+          maxHeight: isMobile ? "100%" : "92vh", overflow: "auto",
+          border: `1px solid ${C.border}`,
+        }}>
+          <div style={{
+            height: 180,
+            background: `linear-gradient(135deg, ${C.teal}30, ${C.blue}30, ${C.purple}30)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 72, position: "relative",
+          }}>
+            {L.photo}
+            <button onClick={() => setSelectedListing(null)} style={{
+              position: "absolute", top: 12, right: 12,
+              background: "rgba(10,10,20,0.55)", border: "none",
+              color: C.text, fontSize: 18, cursor: "pointer",
+              width: 36, height: 36, borderRadius: 18,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>×</button>
+          </div>
+          <div style={{ padding: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+              <span style={{ fontSize: 26, fontWeight: 700, color: C.text }}>{formatPrice(L.price)}</span>
+              <Badge color={L.status === "pending" ? C.amber : C.teal}>{L.status}</Badge>
+            </div>
+            <div style={{ fontSize: 15, color: C.text, marginBottom: 2 }}>{L.address}</div>
+            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>{L.community} • {L.area}</div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
+              {[
+                { label: "Beds", value: L.beds, icon: BedDouble },
+                { label: "Baths", value: L.baths, icon: Bath },
+                { label: "Sqft", value: L.sqft.toLocaleString(), icon: Building2 },
+                { label: "DOM", value: L.days, icon: Clock },
+              ].map(s => (
+                <div key={s.label} style={{ padding: 10, background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, textAlign: "center" }}>
+                  <s.icon size={14} color={C.textDim} style={{ marginBottom: 4 }} />
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: 12, background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: C.textDim, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Listing agent</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Avatar name={L.agent} size={36} color={C.teal} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{L.agent}</div>
+                  <div style={{ fontSize: 11, color: C.textDim }}>{L.type}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={() => setToast({ message: "Showing request sent", kind: "success" })} style={btnPrimary()}>
+                <Calendar size={14} /> Schedule showing
+              </button>
+              <button onClick={() => runAI("listing-desc", L)} style={quickAction(C.purple)}>
+                <Sparkles size={14} /> Generate copy
+              </button>
+              <button onClick={() => setToast({ message: "Saved to favorites", kind: "success" })} style={quickAction(C.teal)}>
+                <Bookmark size={14} /> Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderView = () => {
     switch (view) {
+      case "inbox": return <InboxView />;
       case "leads": return <LeadsView />;
       case "pipeline": return <PipelineView />;
+      case "tasks": return <TasksView />;
+      case "listings": return <ListingsView />;
       case "reports": return <ReportsView />;
       case "communities": return <CommunitiesView />;
       case "agents": return <AgentsView />;
@@ -1489,6 +2064,23 @@ export default function App() {
       background: color + "12", color, fontSize: 13, fontWeight: 600,
       textDecoration: "none", cursor: "pointer", minHeight: 44,
       transition: "background 0.15s ease",
+    };
+  }
+  function selectStyle() {
+    return {
+      padding: "10px 12px", background: C.bg, border: `1px solid ${C.border}`,
+      borderRadius: 8, color: C.text, fontSize: 13, outline: "none",
+      minHeight: 44, cursor: "pointer", appearance: "none",
+      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "right 10px center",
+      paddingRight: 32,
+    };
+  }
+  function priceInputStyle() {
+    return {
+      width: "100%", padding: "10px 10px", background: C.bg, border: `1px solid ${C.border}`,
+      borderRadius: 8, color: C.text, fontSize: 12, outline: "none", minHeight: 44,
     };
   }
 
@@ -1574,7 +2166,15 @@ export default function App() {
                 onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.bgHover; e.currentTarget.style.color = C.text; } }}
                 onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textMuted; } }}
               >
-                <Icon size={isMobile ? 18 : 16} /> {item.label}
+                <Icon size={isMobile ? 18 : 16} />
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.id === "inbox" && unreadNotifs > 0 && (
+                  <span style={{
+                    padding: "1px 7px", borderRadius: 9999,
+                    background: C.red, color: "#fff", fontSize: 10, fontWeight: 700,
+                    minWidth: 18, textAlign: "center",
+                  }}>{unreadNotifs}</span>
+                )}
               </button>
             );
           })}
@@ -1680,6 +2280,8 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <ListingDetailModal />
 
       {toast && <Toast message={toast.message} kind={toast.kind} onDismiss={() => setToast(null)} />}
     </div>
