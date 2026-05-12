@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
-import { Home, Users, FileText, Map, Brain, Settings, Plus, ChevronRight, TrendingUp, Mail, Phone, Globe, Eye, Target, BarChart3, Layers, ExternalLink, Copy, Check, DollarSign, Award, MapPin, Send, Sparkles } from "lucide-react";
+import { Home, Users, FileText, Map, Brain, Settings, Plus, ChevronRight, TrendingUp, Mail, Phone, Globe, Eye, Target, BarChart3, Layers, ExternalLink, Copy, Check, DollarSign, Award, MapPin, Send, Sparkles, Menu, X } from "lucide-react";
 
 const C = {
   teal: "#5eead4", tealDark: "#2dd4bf",
@@ -87,13 +87,13 @@ const Badge = ({ children, color = C.teal }) => <span style={{ display: "inline-
 
 const Avatar = ({ name, size = 36, color = C.teal }) => <div style={{ width: size, height: size, borderRadius: "50%", background: `linear-gradient(135deg, ${color}, ${color}88)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.38, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{name.split(" ").map(n => n[0]).join("")}</div>;
 
-const StatCard = ({ icon: Icon, label, value, change, color = C.teal, subtitle }) => (
-  <div style={{ background: C.bgCard, borderRadius: 12, padding: 20, border: `1px solid ${C.border}`, flex: 1, minWidth: 200 }}>
+const StatCard = ({ icon: Icon, label, value, change, color = C.teal, subtitle, isMobile }) => (
+  <div style={{ background: C.bgCard, borderRadius: 12, padding: isMobile ? 16 : 20, border: `1px solid ${C.border}`, flex: isMobile ? "1 1 100%" : 1, minWidth: isMobile ? "auto" : 200 }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
       <div style={{ width: 40, height: 40, borderRadius: 10, background: color + "15", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={20} color={color} /></div>
       {change && <span style={{ fontSize: 13, fontWeight: 600, color: C.green, display: "flex", alignItems: "center", gap: 2 }}><TrendingUp size={14} /> {change}</span>}
     </div>
-    <div style={{ fontSize: 28, fontWeight: 700, color: C.text }}>{value}</div>
+    <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: C.text }}>{value}</div>
     <div style={{ fontSize: 13, color: C.textMuted }}>{label}</div>
     {subtitle && <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{subtitle}</div>}
   </div>
@@ -125,6 +125,18 @@ export default function App() {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiOut, setAiOut] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const nav = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -141,24 +153,26 @@ export default function App() {
     setTimeout(() => { setAiOut(AI_OUTPUTS[type] || AI_OUTPUTS["market-report"]); setAiBusy(false); }, 1200);
   };
 
-  const Card = ({ children, style = {} }) => <div style={{ background: C.bgCard, borderRadius: 12, padding: 20, border: `1px solid ${C.border}`, ...style }}>{children}</div>;
+  const Card = ({ children, style = {} }) => <div style={{ background: C.bgCard, borderRadius: 12, padding: isMobile ? 16 : 20, border: `1px solid ${C.border}`, ...style }}>{children}</div>;
 
   const Dashboard = () => (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 24, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Platform Dashboard</h1>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Platform Dashboard</h1>
           <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>triskope — see everything together</p>
         </div>
-        <button onClick={() => { setAiOpen(true); runAI("market-report"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer" }}><Sparkles size={16} /> AI Insights</button>
+        {!isMobile && (
+          <button onClick={() => { setAiOpen(true); runAI("market-report"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer" }}><Sparkles size={16} /> AI Insights</button>
+        )}
       </div>
-      <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-        <StatCard icon={Users} label="Total Agents" value="48" change="+12%" color={C.teal} subtitle="Active subscribers" />
-        <StatCard icon={Target} label="Total Leads" value="1,247" change="+18%" color={C.blue} subtitle="Across all agents" />
-        <StatCard icon={FileText} label="Market Reports" value="33" change="+6" color={C.purple} subtitle="Auto-generated pages" />
-        <StatCard icon={DollarSign} label="MRR" value="$26.8K" change="+19%" color={C.teal} subtitle="Monthly recurring revenue" />
+      <div style={{ display: "flex", gap: isMobile ? 12 : 16, marginBottom: 24, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+        <StatCard icon={Users} label="Total Agents" value="48" change="+12%" color={C.teal} subtitle="Active subscribers" isMobile={isMobile} />
+        <StatCard icon={Target} label="Total Leads" value="1,247" change="+18%" color={C.blue} subtitle="Across all agents" isMobile={isMobile} />
+        <StatCard icon={FileText} label="Market Reports" value="33" change="+6" color={C.purple} subtitle="Auto-generated pages" isMobile={isMobile} />
+        <StatCard icon={DollarSign} label="MRR" value="$26.8K" change="+19%" color={C.teal} subtitle="Monthly recurring revenue" isMobile={isMobile} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
         <Card>
           <h3 style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: "0 0 16px" }}>Weekly Lead Flow</h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -190,9 +204,9 @@ export default function App() {
         {LEADS.filter(l => l.status === "hot").map(lead => (
           <div key={lead.id} onClick={() => { setSelectedLead(lead); setView("leads"); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
             <Avatar name={lead.name} size={36} color={C.red} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{lead.name}</div>
-              <div style={{ fontSize: 12, color: C.textDim }}>{lead.source} • {lead.agent}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</div>
+              <div style={{ fontSize: 12, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.source} • {lead.agent}</div>
             </div>
             <Score score={lead.score} />
           </div>
@@ -203,19 +217,19 @@ export default function App() {
 
   const LeadsView = () => (
     <div>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Lead Management</h1>
+      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Lead Management</h1>
       <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>AI-powered lead scoring and qualification</p>
       {selectedLead ? (
         <Card>
-          <button onClick={() => setSelectedLead(null)} style={{ background: "none", border: "none", color: C.teal, fontSize: 13, cursor: "pointer", marginBottom: 16 }}>← Back to all leads</button>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+          <button onClick={() => setSelectedLead(null)} style={{ background: "none", border: "none", color: C.teal, fontSize: 14, cursor: "pointer", marginBottom: 16, padding: "4px 0", minHeight: 44, display: "flex", alignItems: "center" }}>← Back to all leads</button>
+          <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 16, marginBottom: 24, flexDirection: isMobile ? "column" : "row" }}>
             <Avatar name={selectedLead.name} size={56} color={selectedLead.status === "hot" ? C.red : C.blue} />
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>{selectedLead.name}</h2>
+              <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: C.text, margin: 0 }}>{selectedLead.name}</h2>
               <div style={{ display: "flex", gap: 12, marginTop: 6 }}><StatusDot status={selectedLead.status} /><Score score={selectedLead.score} /></div>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 16 }}>
             {[["Interest", selectedLead.interest], ["Budget", selectedLead.budget], ["Area", selectedLead.area], ["Source", selectedLead.source]].map(([k, v]) => (
               <div key={k} style={{ padding: 12, background: C.bg, borderRadius: 8 }}>
                 <div style={{ fontSize: 11, color: C.textDim }}>{k}</div>
@@ -227,8 +241,30 @@ export default function App() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Brain size={16} color={C.teal} /><span style={{ fontSize: 14, fontWeight: 600, color: C.teal }}>AI Analysis</span></div>
             <p style={{ fontSize: 13, color: C.textMuted, margin: 0, lineHeight: 1.6 }}>{selectedLead.aiNotes}</p>
           </div>
-          <button onClick={() => runAI("lead-score")} style={{ marginTop: 16, padding: "10px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Brain size={14} /> Run AI Score Analysis</button>
+          <button onClick={() => runAI("lead-score")} style={{ marginTop: 16, padding: "12px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, minHeight: 44 }}><Brain size={14} /> Run AI Score Analysis</button>
         </Card>
+      ) : isMobile ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {LEADS.map(lead => (
+            <Card key={lead.id} style={{ cursor: "pointer" }}>
+              <div onClick={() => setSelectedLead(lead)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                  <Avatar name={lead.name} size={40} color={C.blue} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{lead.name}</div>
+                    <div style={{ fontSize: 12, color: C.textDim }}>{lead.area}</div>
+                  </div>
+                  <StatusDot status={lead.status} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Score score={lead.score} />
+                  <span style={{ fontSize: 12, color: C.textMuted }}>{lead.budget}</span>
+                </div>
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 6 }}>{lead.source} • {lead.agent || "Unassigned"}</div>
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : (
         <Card style={{ padding: 0 }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -257,22 +293,22 @@ export default function App() {
 
   const ReportsView = () => (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div><h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Market Reports</h1><p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Auto-generated SEO pages with live MLS data</p></div>
-        <button onClick={() => runAI("market-report")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer" }}><Plus size={14} /> Generate Report</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 24, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
+        <div><h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Market Reports</h1><p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Auto-generated SEO pages with live MLS data</p></div>
+        <button onClick={() => runAI("market-report")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44 }}><Plus size={14} /> Generate Report</button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
         {REPORTS.map(r => (
           <Card key={r.id}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}><div><h3 style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: 0 }}>{r.title}</h3><div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{r.agent}</div></div><StatusDot status={r.status} /></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: C.bg, borderRadius: 6, marginBottom: 12, fontSize: 11, color: C.teal, fontFamily: "monospace" }}><Globe size={12} /> /market/{r.slug}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: C.bg, borderRadius: 6, marginBottom: 12, fontSize: 11, color: C.teal, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}><Globe size={12} /> /market/{r.slug}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
               <div><div style={{ fontSize: 11, color: C.textDim }}>Avg Price</div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{r.avgPrice} <span style={{ fontSize: 11, color: C.teal }}>{r.priceChange}</span></div></div>
               <div><div style={{ fontSize: 11, color: C.textDim }}>Inventory</div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{r.inv}</div></div>
               <div><div style={{ fontSize: 11, color: C.textDim }}>Days on Market</div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{r.dom}</div></div>
               <div><div style={{ fontSize: 11, color: C.textDim }}>Leads Generated</div><div style={{ fontSize: 14, fontWeight: 600, color: C.teal }}>{r.leads}</div></div>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${C.border}` }}><span style={{ fontSize: 12, color: C.textMuted, display: "flex", alignItems: "center", gap: 4 }}><Eye size={12} /> {r.views.toLocaleString()} views</span><Badge color={C.purple}>MLS auto-sync</Badge></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: `1px solid ${C.border}`, flexWrap: "wrap", gap: 8 }}><span style={{ fontSize: 12, color: C.textMuted, display: "flex", alignItems: "center", gap: 4 }}><Eye size={12} /> {r.views.toLocaleString()} views</span><Badge color={C.purple}>MLS auto-sync</Badge></div>
           </Card>
         ))}
       </div>
@@ -281,19 +317,19 @@ export default function App() {
 
   const CommunitiesView = () => (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div><h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Community Pages</h1><p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Live MLS-powered community listing pages</p></div>
-        <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer" }}><Plus size={14} /> New Community</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 24, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
+        <div><h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Community Pages</h1><p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Live MLS-powered community listing pages</p></div>
+        <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44 }}><Plus size={14} /> New Community</button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
         {COMMUNITIES.map(c => (
           <Card key={c.id}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ fontSize: 32 }}>{c.icon}</div><div><h3 style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: 0 }}>{c.name}</h3><div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{c.type} • {c.area}</div></div></div>
               <Badge color={C.teal}>{c.listings} active</Badge>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: C.bg, borderRadius: 6, marginBottom: 12, fontSize: 11, color: C.teal, fontFamily: "monospace" }}><Globe size={12} /> /community/{c.slug}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.textMuted }}><span>Avg: <strong style={{ color: C.text }}>{c.avgPrice}</strong></span><span>{c.views.toLocaleString()} views</span><span style={{ color: C.teal }}>{c.leads} leads</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: C.bg, borderRadius: 6, marginBottom: 12, fontSize: 11, color: C.teal, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}><Globe size={12} /> /community/{c.slug}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.textMuted, flexWrap: "wrap", gap: 4 }}><span>Avg: <strong style={{ color: C.text }}>{c.avgPrice}</strong></span><span>{c.views.toLocaleString()} views</span><span style={{ color: C.teal }}>{c.leads} leads</span></div>
           </Card>
         ))}
       </div>
@@ -302,16 +338,16 @@ export default function App() {
 
   const AgentsView = () => (
     <div>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Subscribing Agents</h1>
+      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Subscribing Agents</h1>
       <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>Each agent gets a branded subdomain powered by triskope</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
         {AGENTS.map(a => (
           <Card key={a.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
               <Avatar name={a.name} size={48} color={a.plan === "Enterprise" ? C.purple : a.plan === "Pro" ? C.blue : C.teal} />
               <div style={{ flex: 1 }}><h3 style={{ fontSize: 16, fontWeight: 600, color: C.text, margin: 0 }}>{a.name}</h3><Badge color={a.plan === "Enterprise" ? C.purple : a.plan === "Pro" ? C.blue : C.teal}>{a.plan}</Badge></div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: C.bg, borderRadius: 6, marginBottom: 12, fontSize: 11, color: C.teal, fontFamily: "monospace" }}><Globe size={12} /> {a.website}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: C.bg, borderRadius: 6, marginBottom: 12, fontSize: 11, color: C.teal, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}><Globe size={12} /> {a.website}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, fontSize: 12 }}>
               <div><div style={{ color: C.textDim, fontSize: 10 }}>Leads</div><div style={{ color: C.text, fontWeight: 600 }}>{a.leads}</div></div>
               <div><div style={{ color: C.textDim, fontSize: 10 }}>Closings</div><div style={{ color: C.text, fontWeight: 600 }}>{a.closings}</div></div>
@@ -326,9 +362,9 @@ export default function App() {
 
   const AIView = () => (
     <div>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>AI Tools</h1>
+      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>AI Tools</h1>
       <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>Generate reports, descriptions, emails, and lead analysis</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
         {[
           { id: "market-report", icon: BarChart3, title: "Market Report Generator", desc: "AI writes neighborhood analysis from live MLS data", color: C.teal },
           { id: "listing-desc", icon: FileText, title: "Listing Description Writer", desc: "Compelling property copy from photos and details", color: C.blue },
@@ -339,7 +375,7 @@ export default function App() {
             <div style={{ width: 44, height: 44, borderRadius: 10, background: tool.color + "15", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}><tool.icon size={22} color={tool.color} /></div>
             <h3 style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>{tool.title}</h3>
             <p style={{ fontSize: 12, color: C.textMuted, margin: "0 0 12px", lineHeight: 1.5 }}>{tool.desc}</p>
-            <button onClick={() => runAI(tool.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", background: `linear-gradient(135deg, ${tool.color}, ${tool.color}cc)`, color: tool.color === C.teal || tool.color === C.blue ? "#0a0a14" : "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}><Sparkles size={12} /> Generate</button>
+            <button onClick={() => runAI(tool.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 6, border: "none", background: `linear-gradient(135deg, ${tool.color}, ${tool.color}cc)`, color: tool.color === C.teal || tool.color === C.blue ? "#0a0a14" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44 }}><Sparkles size={12} /> Generate</button>
           </Card>
         ))}
       </div>
@@ -348,9 +384,9 @@ export default function App() {
 
   const PlansView = () => (
     <div>
-      <h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: 0 }}>Subscription Plans</h1>
+      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Subscription Plans</h1>
       <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>Tiered pricing for real estate agents</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16 }}>
         {PLANS.map(p => (
           <Card key={p.name} style={{ borderColor: p.name === "Pro" ? C.blue : C.border, borderWidth: p.name === "Pro" ? 2 : 1 }}>
             {p.name === "Pro" && <Badge color={C.blue}>Most Popular</Badge>}
@@ -380,7 +416,59 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "-apple-system, system-ui, sans-serif" }}>
-      <aside style={{ width: 240, background: C.bgCard, borderRight: `1px solid ${C.border}`, padding: 20, flexShrink: 0 }}>
+      {/* Mobile Header Bar */}
+      {isMobile && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, height: 56, background: C.bgCard,
+          borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center",
+          justifyContent: "space-between", padding: "0 16px", zIndex: 200
+        }}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
+            background: "none", border: "none", color: C.text, cursor: "pointer",
+            padding: 8, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <TriskopeLogo size={28} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "0.08em" }}>triskope</span>
+          </div>
+          <button onClick={() => { setAiOpen(true); runAI("market-report"); }} style={{
+            background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, border: "none",
+            borderRadius: 8, padding: "6px 10px", color: "#0a0a14", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 4, minHeight: 36
+          }}>
+            <Sparkles size={14} /> AI
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          zIndex: 250, transition: "opacity 0.2s ease"
+        }} />
+      )}
+
+      {/* Sidebar */}
+      <aside style={{
+        width: 240,
+        background: C.bgCard,
+        borderRight: `1px solid ${C.border}`,
+        padding: 20,
+        flexShrink: 0,
+        ...(isMobile ? {
+          position: "fixed",
+          top: 0,
+          left: sidebarOpen ? 0 : -260,
+          bottom: 0,
+          zIndex: 300,
+          transition: "left 0.25s ease",
+          overflowY: "auto",
+          paddingTop: 20,
+        } : {})
+      }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
           <TriskopeLogo size={36} />
           <div>
@@ -392,8 +480,14 @@ export default function App() {
           const Icon = item.icon;
           const active = view === item.id;
           return (
-            <button key={item.id} onClick={() => { setView(item.id); setSelectedLead(null); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 12px", marginBottom: 4, borderRadius: 8, border: "none", background: active ? `linear-gradient(135deg, ${C.teal}18, ${C.blue}12)` : "transparent", color: active ? C.teal : C.textMuted, fontSize: 13, fontWeight: 500, cursor: "pointer", textAlign: "left" }}>
-              <Icon size={16} /> {item.label}
+            <button key={item.id} onClick={() => { setView(item.id); setSelectedLead(null); if (isMobile) setSidebarOpen(false); }} style={{
+              display: "flex", alignItems: "center", gap: 10, width: "100%",
+              padding: isMobile ? "12px 12px" : "10px 12px", marginBottom: 4, borderRadius: 8, border: "none",
+              background: active ? `linear-gradient(135deg, ${C.teal}18, ${C.blue}12)` : "transparent",
+              color: active ? C.teal : C.textMuted, fontSize: isMobile ? 14 : 13,
+              fontWeight: 500, cursor: "pointer", textAlign: "left", minHeight: isMobile ? 48 : "auto"
+            }}>
+              <Icon size={isMobile ? 18 : 16} /> {item.label}
             </button>
           );
         })}
@@ -404,14 +498,30 @@ export default function App() {
           </div>
         </div>
       </aside>
-      <main style={{ flex: 1, padding: 32, overflow: "auto" }}>{renderView()}</main>
+
+      {/* Main Content */}
+      <main style={{
+        flex: 1,
+        padding: isMobile ? "72px 16px 24px" : 32,
+        overflow: "auto",
+        minWidth: 0,
+      }}>{renderView()}</main>
+
+      {/* AI Output Panel */}
       {aiOpen && (
-        <div onClick={() => setAiOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "flex-end", zIndex: 100 }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: 480, background: C.bgCard, borderLeft: `1px solid ${C.border}`, padding: 24, overflow: "auto" }}>
+        <div onClick={() => setAiOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "flex-end", zIndex: 400 }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: isMobile ? "100%" : 480,
+            maxWidth: "100%",
+            background: C.bgCard,
+            borderLeft: isMobile ? "none" : `1px solid ${C.border}`,
+            padding: isMobile ? 16 : 24,
+            overflow: "auto"
+          }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
               <Brain size={20} color={C.teal} />
               <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>AI Output</h2>
-              <button onClick={() => setAiOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: C.textDim, cursor: "pointer", fontSize: 20 }}>×</button>
+              <button onClick={() => setAiOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", color: C.textDim, cursor: "pointer", fontSize: 20, padding: 8, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
             </div>
             {aiBusy ? (
               <div style={{ padding: 40, textAlign: "center", color: C.textMuted }}>
