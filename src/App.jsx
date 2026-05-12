@@ -4,7 +4,8 @@ import {
   Home, Users, FileText, Map, Brain, Settings, Plus, ChevronRight, ChevronLeft,
   TrendingUp, Mail, Phone, Globe, Eye, Target, BarChart3, ExternalLink,
   Copy, Check, DollarSign, Award, MapPin, Sparkles, Menu, X,
-  Calendar, Clock, MessageSquare, RefreshCw, Search, Tag, Bell, Activity, Inbox
+  Calendar, Clock, MessageSquare, RefreshCw, Search, Tag, Bell, Activity, Inbox,
+  Layers, GripVertical, ArrowUpDown, ChevronDown, CalendarPlus, Trash2, CheckCircle2
 } from "lucide-react";
 
 const C = {
@@ -225,6 +226,37 @@ const PLANS = [
   { name: "Starter", price: 49, agents: 12, features: ["CRM + Lead Management", "3 Market Reports", "2 Community Pages", "Basic AI Scoring"] },
   { name: "Pro", price: 99, agents: 28, features: ["Everything in Starter", "Unlimited Market Reports", "10 Community Pages", "AI Content Generation", "Drip Campaigns"] },
   { name: "Enterprise", price: 199, agents: 8, features: ["Everything in Pro", "Unlimited Everything", "Predictive Analytics", "Custom Branding", "API Access"] },
+];
+
+// Pipeline stages — used by the Kanban view
+const STAGES = [
+  { id: "new",       label: "New",       color: "#818cf8" }, // blue
+  { id: "contacted", label: "Contacted", color: "#a78bfa" }, // purple
+  { id: "qualified", label: "Qualified", color: "#5eead4" }, // teal
+  { id: "showing",   label: "Showing",   color: "#f59e0b" }, // amber
+  { id: "offer",     label: "Offer",     color: "#10b981" }, // green
+  { id: "closed",    label: "Closed",    color: "#55557a" }, // dim
+];
+
+// Initial stage assignment per lead id — derived from each lead's situation
+const LEAD_STAGE_INIT = {
+  1: "qualified", 2: "contacted", 3: "qualified", 4: "contacted",
+  5: "offer",     6: "new",       7: "new",       8: "contacted",
+  9: "showing",  10: "contacted",11: "qualified",12: "new",
+};
+
+const STATUS_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "hot", label: "Hot" },
+  { id: "nurture", label: "Nurture" },
+  { id: "new", label: "New" },
+  { id: "cold", label: "Cold" },
+];
+
+const SORT_OPTIONS = [
+  { id: "score",  label: "Score (high → low)" },
+  { id: "recent", label: "Most recent" },
+  { id: "name",   label: "Name (A → Z)" },
 ];
 
 // ============================================================
@@ -506,6 +538,20 @@ export default function App() {
   const phaseTimer = useRef(null);
   const streamTimer = useRef(null);
 
+  // Phase 2: lead filtering, pipeline, notes, tasks
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("score");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [leadStages, setLeadStages] = useState(LEAD_STAGE_INIT);
+  const [leadNotes, setLeadNotes] = useState({});   // { leadId: [{ id, text, createdAt }] }
+  const [leadTasks, setLeadTasks] = useState({});   // { leadId: [{ id, text, due, done }] }
+  const [noteDraft, setNoteDraft] = useState("");
+  const [taskDraft, setTaskDraft] = useState("");
+  const [taskDueDraft, setTaskDueDraft] = useState("");
+  const [draggingId, setDraggingId] = useState(null);
+  const [stageMenuFor, setStageMenuFor] = useState(null); // leadId whose stage menu is open
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -588,9 +634,72 @@ export default function App() {
     }
   };
 
+  // ----- Phase 2 helpers -----
+  const moveLeadToStage = (leadId, stageId) => {
+    setLeadStages(prev => ({ ...prev, [leadId]: stageId }));
+    const lead = LEADS.find(l => l.id === leadId);
+    const stage = STAGES.find(s => s.id === stageId);
+    if (lead && stage) setToast({ message: `${lead.name.split(" ")[0]} moved to ${stage.label}`, kind: "success" });
+  };
+
+  const addNote = (leadId, text) => {
+    if (!text.trim()) return;
+    const note = { id: Date.now(), text: text.trim(), createdAt: "just now" };
+    setLeadNotes(prev => ({ ...prev, [leadId]: [note, ...(prev[leadId] || [])] }));
+    setNoteDraft("");
+    setToast({ message: "Note added", kind: "success" });
+  };
+
+  const addTask = (leadId, text, due) => {
+    if (!text.trim()) return;
+    const task = { id: Date.now(), text: text.trim(), due: due || "no due date", done: false };
+    setLeadTasks(prev => ({ ...prev, [leadId]: [task, ...(prev[leadId] || [])] }));
+    setTaskDraft(""); setTaskDueDraft("");
+    setToast({ message: "Follow-up scheduled", kind: "success" });
+  };
+
+  const toggleTask = (leadId, taskId) => {
+    setLeadTasks(prev => ({
+      ...prev,
+      [leadId]: (prev[leadId] || []).map(t => t.id === taskId ? { ...t, done: !t.done } : t),
+    }));
+  };
+
+  const deleteTask = (leadId, taskId) => {
+    setLeadTasks(prev => ({
+      ...prev,
+      [leadId]: (prev[leadId] || []).filter(t => t.id !== taskId),
+    }));
+  };
+
+  const filteredLeads = LEADS
+    .filter(l => statusFilter === "all" || l.status === statusFilter)
+    .filter(l => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return l.name.toLowerCase().includes(q) ||
+             (l.email || "").toLowerCase().includes(q) ||
+             (l.area || "").toLowerCase().includes(q) ||
+             (l.source || "").toLowerCase().includes(q) ||
+             (l.tags || []).some(t => t.toLowerCase().includes(q));
+    })
+    .sort((a, b) => {
+      if (sortBy === "score")  return b.score - a.score;
+      if (sortBy === "recent") return a.addedDays - b.addedDays;
+      if (sortBy === "name")   return a.name.localeCompare(b.name);
+      return 0;
+    });
+
+  const statusCounts = LEADS.reduce((acc, l) => {
+    acc.all = (acc.all || 0) + 1;
+    acc[l.status] = (acc[l.status] || 0) + 1;
+    return acc;
+  }, {});
+
   const nav = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "leads", label: "Leads", icon: Users },
+    { id: "pipeline", label: "Pipeline", icon: Layers },
     { id: "reports", label: "Market Reports", icon: FileText },
     { id: "communities", label: "Communities", icon: Map },
     { id: "agents", label: "Agents", icon: Award },
@@ -682,79 +791,308 @@ export default function App() {
   );
 
   // ----- LEADS -----
-  const LeadsView = () => (
-    <div>
-      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Lead Management</h1>
-      <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>AI-powered lead scoring and qualification</p>
+  const LeadsToolbar = () => (
+    <Card style={{ marginBottom: 16, padding: isMobile ? 12 : 16 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexDirection: isMobile ? "column" : "row" }}>
+        {/* Search */}
+        <div style={{ position: "relative", flex: 1, width: "100%" }}>
+          <Search size={14} color={C.textDim} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, email, area, source, or tag…"
+            style={{
+              width: "100%", padding: "10px 12px 10px 36px",
+              background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+              color: C.text, fontSize: 13, outline: "none",
+              transition: "border-color 0.15s ease",
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = C.teal + "88"}
+            onBlur={e => e.currentTarget.style.borderColor = C.border}
+          />
+          {search && (
+            <button onClick={() => setSearch("")} style={{
+              position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+              background: "none", border: "none", color: C.textDim, cursor: "pointer",
+              padding: 6, display: "flex", alignItems: "center",
+            }} aria-label="Clear search">
+              <X size={14} />
+            </button>
+          )}
+        </div>
 
-      {selectedLead ? <LeadDetail lead={selectedLead} /> :
-        isMobile ? <LeadCards /> : <LeadTable />}
-    </div>
-  );
-
-  const LeadDetail = ({ lead }) => (
-    <Card>
-      <button onClick={() => setSelectedLead(null)} style={{ background: "none", border: "none", color: C.teal, fontSize: 14, cursor: "pointer", padding: "4px 0", minHeight: 44, display: "flex", alignItems: "center", gap: 4 }}>
-        <ChevronLeft size={16} /> Back to all leads
-      </button>
-
-      <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 16, margin: "12px 0 20px", flexDirection: isMobile ? "column" : "row" }}>
-        <Avatar name={lead.name} size={56} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
-        <div style={{ flex: 1 }}>
-          <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: C.text, margin: 0 }}>{lead.name}</h2>
-          <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
-            <StatusDot status={lead.status} />
-            <Score score={lead.score} />
-            <span style={{ fontSize: 12, color: C.textDim }}>Added {lead.addedDays}d ago • Last contact {lead.lastContact}</span>
-          </div>
+        {/* Sort dropdown */}
+        <div style={{ position: "relative", width: isMobile ? "100%" : "auto" }}>
+          <button onClick={() => setSortOpen(o => !o)} style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "10px 14px",
+            background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+            color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer",
+            minHeight: 44, whiteSpace: "nowrap", width: isMobile ? "100%" : "auto", justifyContent: "space-between",
+          }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}><ArrowUpDown size={14} /> {SORT_OPTIONS.find(s => s.id === sortBy)?.label}</span>
+            <ChevronDown size={14} />
+          </button>
+          {sortOpen && (
+            <>
+              <div onClick={() => setSortOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
+              <div style={{
+                position: "absolute", top: "100%", right: 0, marginTop: 4,
+                background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.4)", zIndex: 101, minWidth: 200,
+                padding: 4,
+              }}>
+                {SORT_OPTIONS.map(opt => (
+                  <button key={opt.id} onClick={() => { setSortBy(opt.id); setSortOpen(false); }} style={{
+                    display: "flex", width: "100%", padding: "10px 12px",
+                    background: sortBy === opt.id ? C.bgHover : "transparent", border: "none",
+                    color: sortBy === opt.id ? C.teal : C.text,
+                    fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6,
+                    alignItems: "center", gap: 8,
+                  }}>
+                    {sortBy === opt.id && <Check size={12} />}{sortBy !== opt.id && <span style={{ width: 12 }} />}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Quick action bar */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <a href={`tel:${lead.phone.replace(/[^0-9]/g, "")}`} style={quickAction(C.green)}><Phone size={14} /> Call</a>
-        <a href={`mailto:${lead.email}`} style={quickAction(C.blue)}><Mail size={14} /> Email</a>
-        <button onClick={() => setToast({ message: "Note logged", kind: "success" })} style={quickAction(C.purple)}><MessageSquare size={14} /> Log note</button>
-        <button onClick={() => runAI("lead-score", lead)} style={quickAction(C.teal)}><Brain size={14} /> AI score</button>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 16 }}>
-        {[["Interest", lead.interest], ["Budget", lead.budget], ["Area", lead.area], ["Source", lead.source], ["Phone", lead.phone], ["Email", lead.email]].map(([k, v]) => (
-          <div key={k} style={{ padding: 12, background: C.bg, borderRadius: 8, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 11, color: C.textDim }}>{k}</div>
-            <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis" }}>{v}</div>
-          </div>
-        ))}
-      </div>
-
-      {lead.tags?.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-          {lead.tags.map(t => (
-            <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, fontSize: 11, color: C.textMuted, background: C.bg, border: `1px solid ${C.border}` }}>
-              <Tag size={10} /> {t}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div style={{ background: `linear-gradient(135deg, ${C.teal}10, ${C.blue}10)`, borderRadius: 10, padding: 16, border: `1px solid ${C.teal}25`, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Brain size={16} color={C.teal} /><span style={{ fontSize: 14, fontWeight: 600, color: C.teal }}>AI Analysis</span></div>
-        <p style={{ fontSize: 13, color: C.textMuted, margin: 0, lineHeight: 1.6 }}>{lead.aiNotes}</p>
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <Activity size={14} color={C.textMuted} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Activity timeline</span>
-        </div>
-        {lead.activity?.map((ev, i) => <ActivityRow key={i} event={ev} />)}
+      {/* Status filter pills */}
+      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+        {STATUS_FILTERS.map(f => {
+          const active = statusFilter === f.id;
+          const count = statusCounts[f.id] || 0;
+          return (
+            <button key={f.id} onClick={() => setStatusFilter(f.id)} style={{
+              padding: "6px 12px", borderRadius: 9999,
+              background: active ? `linear-gradient(135deg, ${C.teal}25, ${C.blue}20)` : C.bg,
+              color: active ? C.teal : C.textMuted,
+              border: `1px solid ${active ? C.teal + "55" : C.border}`,
+              fontSize: 12, fontWeight: 600, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: 6,
+              transition: "all 0.15s ease", minHeight: 32,
+            }}>
+              {f.label}
+              <span style={{
+                fontSize: 11, padding: "1px 6px", borderRadius: 9999,
+                background: active ? C.teal + "30" : C.border,
+                color: active ? C.teal : C.textDim,
+              }}>{count}</span>
+            </button>
+          );
+        })}
+        {(search || statusFilter !== "all") && (
+          <button onClick={() => { setSearch(""); setStatusFilter("all"); }} style={{
+            padding: "6px 10px", borderRadius: 9999, background: "transparent",
+            color: C.textMuted, border: `1px solid transparent`,
+            fontSize: 12, fontWeight: 500, cursor: "pointer", minHeight: 32,
+          }}>
+            Clear filters
+          </button>
+        )}
       </div>
     </Card>
   );
 
-  const LeadCards = () => (
+  const LeadsView = () => (
+    <div>
+      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Lead Management</h1>
+      <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 16px" }}>AI-powered lead scoring and qualification</p>
+
+      {!selectedLead && <LeadsToolbar />}
+
+      {selectedLead ? (
+        <LeadDetail lead={selectedLead} />
+      ) : filteredLeads.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={Search}
+            title="No leads match your filters"
+            message="Try clearing the search or selecting a different status."
+            action={
+              <button onClick={() => { setSearch(""); setStatusFilter("all"); }} style={{ ...btnPrimary(), marginTop: 16 }}>
+                Clear filters
+              </button>
+            }
+          />
+        </Card>
+      ) : isMobile ? (
+        <LeadCards leads={filteredLeads} />
+      ) : (
+        <LeadTable leads={filteredLeads} />
+      )}
+    </div>
+  );
+
+  const LeadDetail = ({ lead }) => {
+    const notes = leadNotes[lead.id] || [];
+    const tasks = leadTasks[lead.id] || [];
+    const stage = leadStages[lead.id];
+    const stageInfo = STAGES.find(s => s.id === stage);
+
+    return (
+      <Card>
+        <button onClick={() => setSelectedLead(null)} style={{ background: "none", border: "none", color: C.teal, fontSize: 14, cursor: "pointer", padding: "4px 0", minHeight: 44, display: "flex", alignItems: "center", gap: 4 }}>
+          <ChevronLeft size={16} /> Back to all leads
+        </button>
+
+        <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", gap: 16, margin: "12px 0 20px", flexDirection: isMobile ? "column" : "row" }}>
+          <Avatar name={lead.name} size={56} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: C.text, margin: 0 }}>{lead.name}</h2>
+            <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <StatusDot status={lead.status} />
+              <Score score={lead.score} />
+              {stageInfo && <Badge color={stageInfo.color}>Pipeline: {stageInfo.label}</Badge>}
+              <span style={{ fontSize: 12, color: C.textDim }}>Added {lead.addedDays}d ago • Last contact {lead.lastContact}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick action bar */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+          <a href={`tel:${(lead.phone || "").replace(/[^0-9]/g, "")}`} style={quickAction(C.green)}><Phone size={14} /> Call</a>
+          <a href={`mailto:${lead.email}`} style={quickAction(C.blue)}><Mail size={14} /> Email</a>
+          <button onClick={() => runAI("lead-score", lead)} style={quickAction(C.teal)}><Brain size={14} /> AI score</button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          {[["Interest", lead.interest], ["Budget", lead.budget], ["Area", lead.area], ["Source", lead.source], ["Phone", lead.phone], ["Email", lead.email]].map(([k, v]) => (
+            <div key={k} style={{ padding: 12, background: C.bg, borderRadius: 8, border: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 11, color: C.textDim }}>{k}</div>
+              <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis" }}>{v}</div>
+            </div>
+          ))}
+        </div>
+
+        {lead.tags?.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+            {lead.tags.map(t => (
+              <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, fontSize: 11, color: C.textMuted, background: C.bg, border: `1px solid ${C.border}` }}>
+                <Tag size={10} /> {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div style={{ background: `linear-gradient(135deg, ${C.teal}10, ${C.blue}10)`, borderRadius: 10, padding: 16, border: `1px solid ${C.teal}25`, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Brain size={16} color={C.teal} /><span style={{ fontSize: 14, fontWeight: 600, color: C.teal }}>AI Analysis</span></div>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: 0, lineHeight: 1.6 }}>{lead.aiNotes}</p>
+        </div>
+
+        {/* Tasks (follow-ups) */}
+        <div style={{ marginBottom: 16, padding: 14, background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <CalendarPlus size={14} color={C.amber} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Follow-ups</span>
+            <span style={{ fontSize: 11, color: C.textDim }}>{tasks.filter(t => !t.done).length} open</span>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: tasks.length ? 12 : 0, flexDirection: isMobile ? "column" : "row" }}>
+            <input
+              type="text" value={taskDraft}
+              onChange={e => setTaskDraft(e.target.value)}
+              placeholder="What needs to happen next?"
+              onKeyDown={e => { if (e.key === "Enter") addTask(lead.id, taskDraft, taskDueDraft); }}
+              style={{
+                flex: 1, padding: "10px 12px", background: C.bgCard, border: `1px solid ${C.border}`,
+                borderRadius: 8, color: C.text, fontSize: 13, outline: "none",
+              }}
+            />
+            <input
+              type="date" value={taskDueDraft}
+              onChange={e => setTaskDueDraft(e.target.value)}
+              style={{
+                padding: "10px 12px", background: C.bgCard, border: `1px solid ${C.border}`,
+                borderRadius: 8, color: C.text, fontSize: 13, outline: "none",
+                colorScheme: "dark", width: isMobile ? "100%" : 160,
+              }}
+            />
+            <button onClick={() => addTask(lead.id, taskDraft, taskDueDraft)}
+                    disabled={!taskDraft.trim()}
+                    style={{
+                      ...btnPrimary(),
+                      opacity: taskDraft.trim() ? 1 : 0.5,
+                      cursor: taskDraft.trim() ? "pointer" : "not-allowed",
+                    }}>
+              <Plus size={14} /> Add
+            </button>
+          </div>
+
+          {tasks.map(t => (
+            <div key={t.id} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "8px 10px", marginTop: 6, background: C.bgCard,
+              borderRadius: 8, border: `1px solid ${C.border}`,
+            }}>
+              <button onClick={() => toggleTask(lead.id, t.id)} style={{
+                background: "none", border: "none", padding: 4, cursor: "pointer",
+                display: "flex", alignItems: "center", color: t.done ? C.teal : C.textDim,
+              }}>
+                {t.done ? <CheckCircle2 size={18} /> : <div style={{ width: 16, height: 16, borderRadius: "50%", border: `1.5px solid ${C.textDim}` }} />}
+              </button>
+              <div style={{ flex: 1, fontSize: 13, color: t.done ? C.textDim : C.text, textDecoration: t.done ? "line-through" : "none" }}>
+                {t.text}
+                <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>Due {t.due}</div>
+              </div>
+              <button onClick={() => deleteTask(lead.id, t.id)} style={{
+                background: "none", border: "none", padding: 6, cursor: "pointer",
+                color: C.textDim, display: "flex", alignItems: "center",
+              }} aria-label="Delete task">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Notes + Activity merged timeline */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Activity size={14} color={C.textMuted} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Activity & notes</span>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <input
+              type="text" value={noteDraft}
+              onChange={e => setNoteDraft(e.target.value)}
+              placeholder="Log a quick note for this lead…"
+              onKeyDown={e => { if (e.key === "Enter") addNote(lead.id, noteDraft); }}
+              style={{
+                flex: 1, padding: "10px 12px", background: C.bg,
+                border: `1px solid ${C.border}`, borderRadius: 8,
+                color: C.text, fontSize: 13, outline: "none",
+              }}
+            />
+            <button onClick={() => addNote(lead.id, noteDraft)}
+                    disabled={!noteDraft.trim()}
+                    style={{
+                      ...quickAction(C.purple),
+                      opacity: noteDraft.trim() ? 1 : 0.5,
+                      cursor: noteDraft.trim() ? "pointer" : "not-allowed",
+                    }}>
+              <MessageSquare size={14} /> Log
+            </button>
+          </div>
+
+          {notes.map(n => (
+            <ActivityRow key={n.id} event={{ text: n.text, time: n.createdAt, icon: "MessageSquare" }} />
+          ))}
+          {lead.activity?.map((ev, i) => <ActivityRow key={`a${i}`} event={ev} />)}
+        </div>
+      </Card>
+    );
+  };
+
+  const LeadCards = ({ leads }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {LEADS.map(lead => (
+      <div style={{ fontSize: 12, color: C.textMuted, padding: "0 4px" }}>
+        Showing {leads.length} of {LEADS.length} leads
+      </div>
+      {leads.map(lead => (
         <Card key={lead.id} onClick={() => setSelectedLead(lead)}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
             <Avatar name={lead.name} size={40} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
@@ -774,44 +1112,178 @@ export default function App() {
     </div>
   );
 
-  const LeadTable = () => (
-    <Card style={{ padding: 0, overflow: "hidden" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ background: C.bg }}>
-            {["Lead", "Status", "Score", "Source", "Budget", "Last contact", "Agent"].map(h => (
-              <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, color: C.textDim, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${C.border}` }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {LEADS.map(lead => (
-            <tr key={lead.id}
-                onClick={() => setSelectedLead(lead)}
-                style={{ cursor: "pointer", borderBottom: `1px solid ${C.border}`, transition: "background 0.15s ease" }}
-                onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-              <td style={{ padding: "12px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <Avatar name={lead.name} size={32} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lead.name}</div>
-                    <div style={{ fontSize: 11, color: C.textDim }}>{lead.area}</div>
-                  </div>
-                </div>
-              </td>
-              <td style={{ padding: "12px 16px" }}><StatusDot status={lead.status} /></td>
-              <td style={{ padding: "12px 16px" }}><Score score={lead.score} /></td>
-              <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.source}</td>
-              <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.budget}</td>
-              <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.lastContact}</td>
-              <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.agent || "Unassigned"}</td>
+  const LeadTable = ({ leads }) => (
+    <>
+      <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8, padding: "0 4px" }}>
+        Showing {leads.length} of {LEADS.length} leads
+      </div>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: C.bg }}>
+              {["Lead", "Status", "Score", "Source", "Budget", "Last contact", "Agent"].map(h => (
+                <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, color: C.textDim, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${C.border}` }}>{h}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
+          </thead>
+          <tbody>
+            {leads.map(lead => (
+              <tr key={lead.id}
+                  onClick={() => setSelectedLead(lead)}
+                  style={{ cursor: "pointer", borderBottom: `1px solid ${C.border}`, transition: "background 0.15s ease" }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <td style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Avatar name={lead.name} size={32} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lead.name}</div>
+                      <div style={{ fontSize: 11, color: C.textDim }}>{lead.area}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style={{ padding: "12px 16px" }}><StatusDot status={lead.status} /></td>
+                <td style={{ padding: "12px 16px" }}><Score score={lead.score} /></td>
+                <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.source}</td>
+                <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.budget}</td>
+                <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.lastContact}</td>
+                <td style={{ padding: "12px 16px", fontSize: 12, color: C.textMuted }}>{lead.agent || "Unassigned"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </>
   );
+
+  // ----- PIPELINE (Kanban) -----
+  const PipelineView = () => {
+    const stageLeads = (stageId) => LEADS.filter(l => leadStages[l.id] === stageId);
+
+    return (
+      <div>
+        <div style={pageHeader(isMobile)}>
+          <div>
+            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Pipeline</h1>
+            <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>
+              {isMobile ? "Tap the stage badge on a card to move it." : "Drag leads across stages, or tap the stage badge to pick a destination."}
+            </p>
+          </div>
+        </div>
+
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? `repeat(${STAGES.length}, 260px)` : `repeat(${STAGES.length}, minmax(0, 1fr))`,
+          gap: 12,
+          overflowX: isMobile ? "auto" : "visible",
+          paddingBottom: isMobile ? 16 : 0,
+          marginLeft: isMobile ? -16 : 0,
+          marginRight: isMobile ? -16 : 0,
+          paddingLeft: isMobile ? 16 : 0,
+          paddingRight: isMobile ? 16 : 0,
+        }}>
+          {STAGES.map(stage => {
+            const leads = stageLeads(stage.id);
+            return (
+              <div
+                key={stage.id}
+                onDragOver={e => { e.preventDefault(); }}
+                onDrop={e => {
+                  e.preventDefault();
+                  const id = parseInt(e.dataTransfer.getData("leadId"));
+                  if (id) moveLeadToStage(id, stage.id);
+                  setDraggingId(null);
+                }}
+                style={{
+                  background: C.bgCard, borderRadius: 12, border: `1px solid ${C.border}`,
+                  padding: 12, minHeight: 200,
+                  borderTop: `3px solid ${stage.color}`,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: stage.color }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{stage.label}</span>
+                  <span style={{ fontSize: 11, color: C.textDim, marginLeft: "auto" }}>{leads.length}</span>
+                </div>
+
+                {leads.length === 0 ? (
+                  <div style={{ fontSize: 11, color: C.textDim, padding: "16px 8px", textAlign: "center" }}>Drop a lead here</div>
+                ) : (
+                  leads.map(lead => (
+                    <div
+                      key={lead.id}
+                      draggable={!isMobile}
+                      onDragStart={e => { e.dataTransfer.setData("leadId", String(lead.id)); setDraggingId(lead.id); }}
+                      onDragEnd={() => setDraggingId(null)}
+                      onClick={() => setSelectedLead(lead) || setView("leads") || (isMobile && setSidebarOpen(false))}
+                      style={{
+                        background: C.bg, borderRadius: 8, border: `1px solid ${C.border}`,
+                        padding: 10, marginBottom: 8, cursor: isMobile ? "pointer" : "grab",
+                        opacity: draggingId === lead.id ? 0.4 : 1,
+                        transition: "opacity 0.15s ease, border-color 0.15s ease",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = C.borderLight}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        {!isMobile && <GripVertical size={12} color={C.textDim} />}
+                        <Avatar name={lead.name} size={26} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</div>
+                          <div style={{ fontSize: 10, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.area}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Score score={lead.score} />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setStageMenuFor(stageMenuFor === lead.id ? null : lead.id); }}
+                          style={{
+                            fontSize: 10, padding: "2px 6px", borderRadius: 4,
+                            background: stage.color + "22", color: stage.color,
+                            border: "none", cursor: "pointer", fontWeight: 600,
+                          }}
+                          aria-label="Change stage"
+                        >
+                          Move ▾
+                        </button>
+                      </div>
+                      {stageMenuFor === lead.id && (
+                        <>
+                          <div onClick={(e) => { e.stopPropagation(); setStageMenuFor(null); }} style={{ position: "fixed", inset: 0, zIndex: 150 }} />
+                          <div style={{
+                            position: "absolute", marginTop: 6, background: C.bgCard,
+                            border: `1px solid ${C.border}`, borderRadius: 8,
+                            boxShadow: "0 8px 24px rgba(0,0,0,0.5)", zIndex: 151,
+                            padding: 4, minWidth: 160,
+                          }}
+                          onClick={(e) => e.stopPropagation()}>
+                            {STAGES.map(s => (
+                              <button key={s.id}
+                                onClick={(e) => { e.stopPropagation(); moveLeadToStage(lead.id, s.id); setStageMenuFor(null); }}
+                                style={{
+                                  display: "flex", width: "100%", padding: "8px 10px",
+                                  background: s.id === stage.id ? C.bgHover : "transparent",
+                                  border: "none", color: s.id === stage.id ? C.teal : C.text,
+                                  fontSize: 12, cursor: "pointer", textAlign: "left", borderRadius: 6,
+                                  alignItems: "center", gap: 8,
+                                }}>
+                                <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
+                                {s.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   // ----- REPORTS -----
   const ReportsView = () => (
@@ -970,6 +1442,7 @@ export default function App() {
   const renderView = () => {
     switch (view) {
       case "leads": return <LeadsView />;
+      case "pipeline": return <PipelineView />;
       case "reports": return <ReportsView />;
       case "communities": return <CommunitiesView />;
       case "agents": return <AgentsView />;
