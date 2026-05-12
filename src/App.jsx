@@ -175,6 +175,35 @@ const COMMUNITIES = [
   },
 ];
 
+// Luxury listing photography — Unsplash CDN. 18 distinct images so that
+// the 20-listing demo has near-unique photos across the grid. Each listing's
+// stable photo is picked by id (see photoForListing).
+const LISTING_PHOTOS = [
+  "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=900&q=80&auto=format&fit=crop", // modern coastal exterior
+  "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=900&q=80&auto=format&fit=crop", // luxury exterior, palms
+  "https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=900&q=80&auto=format&fit=crop", // contemporary home dusk
+  "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=900&q=80&auto=format&fit=crop", // white modern villa
+  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=900&q=80&auto=format&fit=crop", // poolside luxury
+  "https://images.unsplash.com/photo-1613553474179-e1eda3ea5734?w=900&q=80&auto=format&fit=crop", // modern coastal
+  "https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=900&q=80&auto=format&fit=crop", // estate facade
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=80&auto=format&fit=crop", // luxury exterior twilight
+  "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=900&q=80&auto=format&fit=crop", // designer kitchen
+  "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=900&q=80&auto=format&fit=crop", // modern coastal exterior
+  "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=900&q=80&auto=format&fit=crop", // luxury patio
+  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=80&auto=format&fit=crop", // luxury interior
+  "https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=900&q=80&auto=format&fit=crop", // coastal aerial
+  "https://images.unsplash.com/photo-1564078516393-cf04bd966897?w=900&q=80&auto=format&fit=crop", // bedroom suite
+  "https://images.unsplash.com/photo-1600573472556-e636c2acda88?w=900&q=80&auto=format&fit=crop", // spa bath
+  "https://images.unsplash.com/photo-1567496898669-ee935f5f647a?w=900&q=80&auto=format&fit=crop", // coastal porch
+  "https://images.unsplash.com/photo-1600585154084-4e5fe7c39198?w=900&q=80&auto=format&fit=crop", // modern facade
+  "https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=900&q=80&auto=format&fit=crop", // poolside lounge
+];
+
+function photoForListing(id) {
+  const idx = ((typeof id === "number" ? id : 0) - 1 + LISTING_PHOTOS.length) % LISTING_PHOTOS.length;
+  return LISTING_PHOTOS[idx];
+}
+
 // Real photography per community, keyed by slug. Unsplash CDN.
 const COMMUNITY_PHOTOS = {
   "barefoot-resort":  "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1600&q=80&auto=format&fit=crop",
@@ -3937,56 +3966,127 @@ export default function App() {
     </svg>
   );
 
-  const ListingCard = ({ L }) => (
-    <Card
-      style={{ padding: 0, overflow: "hidden", borderColor: hoveredListing === L.id ? C.teal + "66" : C.border }}
-      onClick={() => setSelectedListing(L)}
-    >
+  const ListingCard = ({ L }) => {
+    const photo = photoForListing(L.id);
+    const agent = AGENTS.find(a => a.id === L.listing_agent);
+    const isHovered = hoveredListing === L.id;
+    return (
       <div
+        onClick={() => setSelectedListing(L)}
         onMouseEnter={() => setHoveredListing(L.id)}
         onMouseLeave={() => setHoveredListing(null)}
+        style={{
+          background: C.bgCard,
+          border: `1px solid ${isHovered ? C.gold + "55" : C.border}`,
+          borderRadius: 12, overflow: "hidden", cursor: "pointer",
+          transition: "transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease",
+          transform: isHovered ? "translateY(-3px)" : "translateY(0)",
+          boxShadow: isHovered ? "0 18px 38px rgba(26,26,34,0.10)" : "none",
+          display: "flex", flexDirection: "column",
+        }}
       >
-        {/* Photo placeholder */}
+        {/* Hero image */}
         <div style={{
-          height: 120,
-          background: `linear-gradient(135deg, ${C.teal}22, ${C.blue}22, ${C.purple}22)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 48, position: "relative",
+          position: "relative",
+          height: 220,
+          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.55) 100%), url(${photo})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          transition: "background-position 0.6s ease",
         }}>
-          {L.photo}
-          {L.status === "pending" && (
-            <span style={{
-              position: "absolute", top: 10, right: 10,
-              padding: "2px 8px", borderRadius: 6,
-              background: C.amber + "30", color: C.amber,
-              fontSize: 10, fontWeight: 700,
-            }}>PENDING</span>
-          )}
+          {/* Top-left: status pill */}
           {L.days <= 5 && (
             <span style={{
-              position: "absolute", top: 10, left: 10,
-              padding: "2px 8px", borderRadius: 6,
-              background: C.red + "30", color: C.red,
-              fontSize: 10, fontWeight: 700,
-            }}>NEW</span>
+              position: "absolute", top: 14, left: 14,
+              padding: "4px 10px", borderRadius: 3,
+              background: C.gold, color: "#fff",
+              fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase",
+            }}>Just Listed</span>
+          )}
+          {/* Top-right: pending/sold */}
+          {L.status === "pending" && (
+            <span style={{
+              position: "absolute", top: 14, right: 14,
+              padding: "4px 10px", borderRadius: 3,
+              background: "rgba(26,26,34,0.85)", color: "#fff",
+              fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase",
+            }}>Under Contract</span>
+          )}
+          {L.status === "sold" && (
+            <span style={{
+              position: "absolute", top: 14, right: 14,
+              padding: "4px 10px", borderRadius: 3,
+              background: "rgba(26,26,34,0.85)", color: "#fff",
+              fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase",
+            }}>Sold</span>
+          )}
+          {/* Bottom-left price overlay */}
+          <div style={{
+            position: "absolute", left: 16, bottom: 14, right: 16,
+            display: "flex", justifyContent: "space-between", alignItems: "flex-end", color: "#fff",
+          }}>
+            <div>
+              <div style={{
+                fontFamily: SERIF_FONT, fontSize: 28, fontWeight: 500,
+                lineHeight: 1, letterSpacing: "0.01em",
+                textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+              }}>{formatPrice(L.price)}</div>
+            </div>
+            <div style={{
+              fontSize: 9, color: "rgba(255,255,255,0.85)",
+              letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600,
+              textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+            }}>
+              {L.days}d on market
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+          <div>
+            <div style={{ fontSize: 9, color: C.gold, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>
+              {L.community}
+            </div>
+            <div style={{ fontSize: 15, color: C.text, fontWeight: 600, lineHeight: 1.3, marginBottom: 4 }}>
+              {L.address}
+            </div>
+            <div style={{ fontSize: 12, color: C.textMuted }}>{L.area}</div>
+          </div>
+
+          <div style={{
+            display: "flex", gap: 0,
+            paddingTop: 12, borderTop: `1px solid ${C.border}`,
+            justifyContent: "space-between",
+          }}>
+            <div style={{ textAlign: "center", flex: 1, borderRight: `1px solid ${C.border}`, padding: "0 4px" }}>
+              <div style={{ fontFamily: SERIF_FONT, fontSize: 18, fontWeight: 500, color: C.text, lineHeight: 1 }}>{L.beds}</div>
+              <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginTop: 4 }}>Bed</div>
+            </div>
+            <div style={{ textAlign: "center", flex: 1, borderRight: `1px solid ${C.border}`, padding: "0 4px" }}>
+              <div style={{ fontFamily: SERIF_FONT, fontSize: 18, fontWeight: 500, color: C.text, lineHeight: 1 }}>{L.baths}</div>
+              <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginTop: 4 }}>Bath</div>
+            </div>
+            <div style={{ textAlign: "center", flex: 1.4, padding: "0 4px" }}>
+              <div style={{ fontFamily: SERIF_FONT, fontSize: 18, fontWeight: 500, color: C.text, lineHeight: 1 }}>{L.sqft.toLocaleString()}</div>
+              <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginTop: 4 }}>Sqft</div>
+            </div>
+          </div>
+
+          {agent && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              paddingTop: 12, borderTop: `1px solid ${C.border}`,
+              fontSize: 11, color: C.textMuted,
+            }}>
+              <Avatar name={agent.name} size={20} color={planColor(agent.plan)} />
+              <span>Listed by <span style={{ color: C.text, fontWeight: 600 }}>{agent.name}</span></span>
+            </div>
           )}
         </div>
-        <div style={{ padding: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{formatPrice(L.price)}</span>
-            <span style={{ fontSize: 11, color: C.textDim }}>{L.days}d on market</span>
-          </div>
-          <div style={{ fontSize: 13, color: C.text, marginBottom: 2 }}>{L.address}</div>
-          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 10 }}>{L.community} • {L.area}</div>
-          <div style={{ display: "flex", gap: 12, fontSize: 12, color: C.textMuted, alignItems: "center" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><BedDouble size={12} /> {L.beds}</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Bath size={12} /> {L.baths}</span>
-            <span>{L.sqft.toLocaleString()} sqft</span>
-          </div>
-        </div>
       </div>
-    </Card>
-  );
+    );
+  };
 
   const ListingsView = () => (
     <div>
@@ -4246,27 +4346,52 @@ export default function App() {
           border: `1px solid ${C.border}`,
         }}>
           <div style={{
-            height: 180,
-            background: `linear-gradient(135deg, ${C.teal}30, ${C.blue}30, ${C.purple}30)`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 72, position: "relative",
+            height: 280,
+            backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.55) 100%), url(${photoForListing(L.id)})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
           }}>
-            {L.photo}
             <button onClick={() => setSelectedListing(null)} style={{
-              position: "absolute", top: 12, right: 12,
-              background: "rgba(10,10,20,0.55)", border: "none",
-              color: C.text, fontSize: 18, cursor: "pointer",
-              width: 36, height: 36, borderRadius: 18,
+              position: "absolute", top: 14, right: 14,
+              background: "rgba(26,26,34,0.7)", border: "none",
+              color: "#fff", fontSize: 18, cursor: "pointer",
+              width: 38, height: 38, borderRadius: 19,
               display: "flex", alignItems: "center", justifyContent: "center",
+              backdropFilter: "blur(8px)",
             }}>×</button>
-          </div>
-          <div style={{ padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-              <span style={{ fontSize: 26, fontWeight: 700, color: C.text }}>{formatPrice(L.price)}</span>
-              <Badge color={L.status === "pending" ? C.amber : C.teal}>{L.status}</Badge>
+            {L.days <= 5 && (
+              <span style={{
+                position: "absolute", top: 14, left: 14,
+                padding: "5px 12px", borderRadius: 3,
+                background: C.gold, color: "#fff",
+                fontSize: 10, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase",
+              }}>Just Listed</span>
+            )}
+            {L.status === "pending" && (
+              <span style={{
+                position: "absolute", top: 14, left: 14,
+                padding: "5px 12px", borderRadius: 3,
+                background: "rgba(26,26,34,0.85)", color: "#fff",
+                fontSize: 10, fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase",
+              }}>Under Contract</span>
+            )}
+            <div style={{ position: "absolute", left: 24, bottom: 20, color: "#fff" }}>
+              <div style={{ fontSize: 9, color: C.goldSoft, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                {L.community}
+              </div>
+              <div style={{ fontFamily: SERIF_FONT, fontSize: 36, fontWeight: 500, lineHeight: 1, letterSpacing: "0.01em", textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>
+                {formatPrice(L.price)}
+              </div>
             </div>
-            <div style={{ fontSize: 15, color: C.text, marginBottom: 2 }}>{L.address}</div>
-            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>{L.community} • {L.area}</div>
+          </div>
+          <div style={{ padding: 24 }}>
+            <div style={{ fontSize: 16, color: C.text, fontWeight: 600, marginBottom: 2 }}>{L.address}</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 18, display: "flex", alignItems: "center", gap: 8 }}>
+              <MapPin size={12} /> {L.area}
+              <span style={{ color: C.textDim }}>·</span>
+              <Badge color={L.status === "pending" ? C.amber : C.green}>{L.status}</Badge>
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
               {[
