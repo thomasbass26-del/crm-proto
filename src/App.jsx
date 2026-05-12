@@ -13,15 +13,51 @@ import {
   Send, UserPlus, AtSign, Hash, Bot, Lock
 } from "lucide-react";
 
+// Luxury palette: cream/ivory canvas, deep charcoal text, muted gold signature.
+// Brand colors deepened from their tech-pastel originals into sophisticated
+// editorial hues. The original bright versions are kept as *Bright suffixes
+// for use on dark surfaces (sidebar, hero overlays, the logo).
 const C = {
-  teal: "#5eead4", tealDark: "#2dd4bf",
-  blue: "#818cf8", blueDark: "#6366f1",
-  purple: "#a78bfa", purpleDark: "#8b5cf6",
-  green: "#10b981", amber: "#f59e0b", red: "#ef4444",
-  bg: "#0a0a14", bgCard: "#12121e", bgHover: "#1a1a2e",
-  border: "#1e1e32", borderLight: "#2a2a44",
-  text: "#f0f0f8", textMuted: "#8888a8", textDim: "#55557a",
+  // Brand — deep luxury (used everywhere on light surfaces)
+  teal: "#0d8b75",        tealDark: "#075d4e",      tealBright: "#5eead4",
+  blue: "#3a4f7a",        blueDark: "#1f2e4a",      blueBright: "#818cf8",
+  purple: "#6e4470",      purpleDark: "#4b2d4e",    purpleBright: "#a78bfa",
+
+  // Signature accent
+  gold:     "#9c7f43",
+  goldSoft: "#c2a76e",
+
+  // Status
+  green: "#0d8b75",
+  amber: "#b8924a",
+  red:   "#b9404a",
+
+  // Light surface system
+  bg:        "#f9f6f0",   // cream page
+  bgCard:    "#ffffff",   // white card
+  bgHover:   "#f3eee2",   // subtle warm hover
+  bgInset:   "#fafafd",   // very subtle inset
+
+  // Dark surface system (sidebar + hero chrome)
+  bgDark:    "#1a1a22",
+  bgDark2:   "#26262e",
+
+  // Borders
+  border:      "#e8e2d4",
+  borderLight: "#d4cdb9",
+
+  // Text on light bg
+  text:      "#1a1a22",
+  textMuted: "#5a5a65",
+  textDim:   "#9a9a95",
+
+  // Text on dark bg
+  textInv:      "#f5f1e6",
+  textInvMuted: "#9c8f7a",
 };
+
+// Editorial serif used for major page titles and editorial numbers
+const SERIF_FONT = `"Cormorant Garamond", "Cormorant", Georgia, "Hoefler Text", serif`;
 
 // Icon registry for activity types
 const ICONS = { Eye, FileText, Mail, Phone, MessageSquare, MapPin, Calendar, Activity, Tag };
@@ -39,14 +75,20 @@ function timeAgo(input) {
   return d.toLocaleDateString();
 }
 
-const TriskopeLogo = ({ size = 36 }) => {
+const TriskopeLogo = ({ size = 36, light = true }) => {
+  // `light=true` means logo sits on a DARK surface (sidebar / dark hero) so it
+  // uses the bright brand colors. light=false means it sits on a light surface
+  // (printable doc footers, etc.) and uses the deep brand colors.
   const r = size * 0.22;
   const cx = size / 2, cy = size / 2;
+  const t = light ? C.tealBright   : C.teal;
+  const b = light ? C.blueBright   : C.blue;
+  const p = light ? C.purpleBright : C.purple;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cy - r * 0.7} r={r} fill="none" stroke={C.teal} strokeWidth={1.5} opacity={0.9} />
-      <circle cx={cx - r * 0.65} cy={cy + r * 0.45} r={r} fill="none" stroke={C.blue} strokeWidth={1.5} opacity={0.9} />
-      <circle cx={cx + r * 0.65} cy={cy + r * 0.45} r={r} fill="none" stroke={C.purple} strokeWidth={1.5} opacity={0.9} />
+      <circle cx={cx} cy={cy - r * 0.7} r={r} fill="none" stroke={t} strokeWidth={1.5} opacity={0.95} />
+      <circle cx={cx - r * 0.65} cy={cy + r * 0.45} r={r} fill="none" stroke={b} strokeWidth={1.5} opacity={0.95} />
+      <circle cx={cx + r * 0.65} cy={cy + r * 0.45} r={r} fill="none" stroke={p} strokeWidth={1.5} opacity={0.95} />
     </svg>
   );
 };
@@ -505,7 +547,7 @@ const StatCard = ({ icon: Icon, label, value, change, color = C.teal, subtitle, 
       <div style={{ width: 40, height: 40, borderRadius: 10, background: color + "15", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon size={20} color={color} /></div>
       {change && <span style={{ fontSize: 13, fontWeight: 600, color: C.green, display: "flex", alignItems: "center", gap: 2 }}><TrendingUp size={14} /> {change}</span>}
     </div>
-    <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: C.text, lineHeight: 1.1 }}>{value}</div>
+    <div style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, lineHeight: 1, letterSpacing: "0.01em" }}>{value}</div>
     <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{label}</div>
     {subtitle && <div style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{subtitle}</div>}
     {sparkline && sparkline.length > 0 && (
@@ -1911,7 +1953,7 @@ export default function App() {
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
           <div>
-            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>
+            <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>
               Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}{profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}
             </h1>
             <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Here's what's moving today across triskope.</p>
@@ -2231,7 +2273,7 @@ export default function App() {
     <div>
       <div style={pageHeader(isMobile)}>
         <div>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Lead Management</h1>
+          <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Lead Management</h1>
           <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>AI-powered lead scoring and qualification</p>
         </div>
         {!selectedLead && (
@@ -2664,7 +2706,7 @@ export default function App() {
       <div>
         <div style={pageHeader(isMobile)}>
           <div>
-            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Pipeline</h1>
+            <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Pipeline</h1>
             <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>
               {isMobile ? "Tap the stage badge on a card to move it." : "Drag leads across stages, or tap the stage badge to pick a destination."}
             </p>
@@ -2823,7 +2865,7 @@ export default function App() {
     <div>
       <div style={pageHeader(isMobile)}>
         <div>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Market Reports</h1>
+          <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Market Reports</h1>
           <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Auto-generated SEO pages with live MLS data</p>
         </div>
         <button onClick={() => runAI("market-report")} style={btnPrimary()}><Plus size={14} /> Generate Report</button>
@@ -3156,7 +3198,7 @@ export default function App() {
       <div>
         <div style={pageHeader(isMobile)}>
           <div>
-            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Community Pages</h1>
+            <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Community Pages</h1>
             <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Each community generates its own landing page with live MLS data.</p>
           </div>
           <button onClick={() => setToast({ message: "New community wizard — coming in Phase 2", kind: "info" })} style={btnPrimary()}><Plus size={14} /> New Community</button>
@@ -3175,7 +3217,7 @@ export default function App() {
   // ----- AGENTS -----
   const AgentsView = () => (
     <div>
-      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Subscribing Agents</h1>
+      <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Subscribing Agents</h1>
       <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>Each agent gets a branded subdomain powered by triskope</p>
       <div style={gridCols(isMobile, 340)}>
         {AGENTS.map(a => (
@@ -3203,7 +3245,7 @@ export default function App() {
   // ----- AI TOOLS -----
   const AIView = () => (
     <div>
-      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>AI Tools</h1>
+      <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>AI Tools</h1>
       <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>Generate reports, descriptions, emails, and lead analysis</p>
       <div style={gridCols(isMobile, 280)}>
         {[
@@ -3237,7 +3279,7 @@ export default function App() {
   // ----- PLANS -----
   const PlansView = () => (
     <div>
-      <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Subscription Plans</h1>
+      <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Subscription Plans</h1>
       <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 24px" }}>Tiered pricing for real estate agents</p>
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16 }}>
         {PLANS.map(p => (
@@ -3265,7 +3307,7 @@ export default function App() {
       <div>
         <div style={pageHeader(isMobile)}>
           <div>
-            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Inbox</h1>
+            <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Inbox</h1>
             <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>
               {unreadNotifs > 0 ? `${unreadNotifs} unread • ${NOTIFICATIONS.length} total` : "All caught up"}
             </p>
@@ -3359,7 +3401,7 @@ export default function App() {
 
     return (
       <div>
-        <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Tasks & follow-ups</h1>
+        <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Tasks & follow-ups</h1>
         <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 16px" }}>
           {totalOpen === 0 ? "No open follow-ups yet — schedule one from any lead's detail page" : `${totalOpen} open across all leads`}
         </p>
@@ -3548,7 +3590,7 @@ export default function App() {
     <div>
       <div style={pageHeader(isMobile)}>
         <div>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Listings</h1>
+          <h1 style={{ fontFamily: SERIF_FONT, fontSize: isMobile ? 28 : 36, fontWeight: 500, color: C.text, margin: 0, letterSpacing: "0.01em", lineHeight: 1.1 }}>Listings</h1>
           <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Active Grand Strand inventory · MLS auto-sync</p>
         </div>
       </div>
@@ -4699,10 +4741,12 @@ export default function App() {
   // Inline style helpers (closures over C/isMobile)
   function btnPrimary() {
     return {
-      display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 8,
-      border: "none", background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`,
-      color: "#0a0a14", fontSize: 13, fontWeight: 600, cursor: "pointer",
-      minHeight: 44, transition: "transform 0.15s ease, filter 0.15s ease",
+      display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 20px", borderRadius: 6,
+      border: "none", background: C.gold,
+      color: "#ffffff", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em",
+      cursor: "pointer",
+      minHeight: 44, transition: "background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease",
+      boxShadow: "0 2px 0 rgba(0,0,0,0.05)",
     };
   }
   function cardTitle() {
@@ -4823,26 +4867,27 @@ export default function App() {
       {/* Mobile header */}
       {isMobile && (
         <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, height: 56, background: C.bgCard,
-          borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center",
+          position: "fixed", top: 0, left: 0, right: 0, height: 56, background: C.bgDark,
+          borderBottom: `1px solid ${C.bgDark2}`, display: "flex", alignItems: "center",
           justifyContent: "space-between", padding: "0 16px", zIndex: 200,
         }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
-            background: "none", border: "none", color: C.text, cursor: "pointer",
+            background: "none", border: "none", color: C.textInv, cursor: "pointer",
             padding: 8, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center",
           }} aria-label="Toggle menu">
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <TriskopeLogo size={28} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "0.08em" }}>triskope</span>
+            <TriskopeLogo size={28} light />
+            <span style={{ fontFamily: SERIF_FONT, fontSize: 19, fontWeight: 500, color: C.textInv, letterSpacing: "0.06em" }}>triskope</span>
           </div>
           <button onClick={() => runAI("market-report", REPORTS[0])} style={{
-            background: `linear-gradient(135deg, ${C.teal}, ${C.blue})`, border: "none",
-            borderRadius: 8, padding: "0 12px", color: "#0a0a14", fontSize: 13, fontWeight: 700,
-            cursor: "pointer", display: "flex", alignItems: "center", gap: 6, minHeight: 44, minWidth: 44,
+            background: C.gold, border: "none",
+            borderRadius: 8, padding: "0 12px", color: "#fff", fontSize: 12, fontWeight: 700,
+            letterSpacing: "0.08em", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6, minHeight: 44, minWidth: 44,
           }} aria-label="AI Insights">
-            <Sparkles size={16} /> AI
+            <Sparkles size={14} /> AI
           </button>
         </div>
       )}
@@ -4854,20 +4899,20 @@ export default function App() {
         }} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — dark luxury chrome */}
       <aside style={{
-        width: 240, background: C.bgCard, borderRight: `1px solid ${C.border}`,
+        width: 240, background: C.bgDark, borderRight: `1px solid ${C.bgDark2}`,
         padding: 20, flexShrink: 0, display: "flex", flexDirection: "column",
         ...(isMobile ? {
           position: "fixed", top: 0, left: sidebarOpen ? 0 : -260, bottom: 0,
           zIndex: 300, transition: "left 0.25s ease", overflowY: "auto", paddingTop: 20,
         } : {}),
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
-          <TriskopeLogo size={36} />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 36 }}>
+          <TriskopeLogo size={38} light />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "0.08em" }}>triskope</div>
-            <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.15em", textTransform: "uppercase" }}>see everything together</div>
+            <div style={{ fontFamily: SERIF_FONT, fontSize: 22, fontWeight: 500, color: C.textInv, letterSpacing: "0.04em", lineHeight: 1 }}>triskope</div>
+            <div style={{ fontSize: 8, color: C.goldSoft, letterSpacing: "0.22em", textTransform: "uppercase", marginTop: 4 }}>see everything together</div>
           </div>
         </div>
 
@@ -4877,74 +4922,77 @@ export default function App() {
             const active = view === item.id;
             return (
               <button key={item.id}
-                onClick={() => { setView(item.id); setSelectedLead(null); if (isMobile) setSidebarOpen(false); }}
+                onClick={() => { setView(item.id); setSelectedLead(null); setSelectedCommunity(null); if (isMobile) setSidebarOpen(false); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 10, width: "100%",
-                  padding: isMobile ? "12px 12px" : "10px 12px", marginBottom: 4, borderRadius: 8, border: "none",
-                  background: active ? `linear-gradient(135deg, ${C.teal}18, ${C.blue}12)` : "transparent",
-                  color: active ? C.teal : C.textMuted,
-                  fontSize: isMobile ? 14 : 13, fontWeight: 500, cursor: "pointer", textAlign: "left",
+                  padding: isMobile ? "12px 12px" : "10px 12px", marginBottom: 2, borderRadius: 6, border: "none",
+                  background: active ? "rgba(156,127,67,0.16)" : "transparent",
+                  borderLeft: active ? `2px solid ${C.gold}` : "2px solid transparent",
+                  paddingLeft: active ? (isMobile ? 10 : 10) : (isMobile ? 12 : 12),
+                  color: active ? C.goldSoft : C.textInvMuted,
+                  fontSize: isMobile ? 14 : 12.5,
+                  fontWeight: active ? 600 : 500,
+                  letterSpacing: "0.04em",
+                  cursor: "pointer", textAlign: "left",
                   minHeight: isMobile ? 48 : 40, transition: "background 0.15s ease, color 0.15s ease",
                 }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.bgHover; e.currentTarget.style.color = C.text; } }}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textMuted; } }}
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.bgDark2; e.currentTarget.style.color = C.textInv; } }}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textInvMuted; } }}
               >
                 <Icon size={isMobile ? 18 : 16} />
                 <span style={{ flex: 1 }}>{item.label}</span>
                 {item.id === "inbox" && unreadNotifs > 0 && (
                   <span style={{
                     padding: "1px 7px", borderRadius: 9999,
-                    background: C.red, color: "#fff", fontSize: 10, fontWeight: 700,
+                    background: C.gold, color: "#fff", fontSize: 10, fontWeight: 700,
                     minWidth: 18, textAlign: "center",
                   }}>{unreadNotifs}</span>
                 )}
                 {item.pro && !hasAssistantAccess && (
                   <span style={{
                     padding: "1px 7px", borderRadius: 9999,
-                    background: C.purple + "22", color: C.purple,
-                    fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
+                    background: "rgba(194,167,110,0.16)", color: C.goldSoft,
+                    fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
                     textTransform: "uppercase",
                   }}>Pro</span>
                 )}
                 {item.pro && hasAssistantAccess && demoPlan === "enterprise" && (
-                  <span style={{
-                    width: 6, height: 6, borderRadius: 3, background: C.teal,
-                  }} />
+                  <span style={{ width: 6, height: 6, borderRadius: 3, background: C.goldSoft }} />
                 )}
               </button>
             );
           })}
         </nav>
 
-        <div style={{ paddingTop: 16, borderTop: `1px solid ${C.border}`, marginTop: 12 }}>
+        <div style={{ paddingTop: 16, borderTop: `1px solid ${C.bgDark2}`, marginTop: 16 }}>
           {/* User block */}
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "10px 8px", borderRadius: 8,
-            background: C.bg, border: `1px solid ${C.border}`, marginBottom: 10,
+            background: C.bgDark2, border: `1px solid ${C.bgDark2}`, marginBottom: 12,
           }}>
-            <Avatar name={profile?.display_name || session?.user?.email || "user"} size={32} color={C.teal} />
+            <Avatar name={profile?.display_name || session?.user?.email || "user"} size={32} color={C.gold} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.textInv, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {profile?.display_name || (session?.user?.email || "").split("@")[0]}
               </div>
-              <div style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div style={{ fontSize: 9, color: C.goldSoft, textTransform: "uppercase", letterSpacing: "0.16em", fontWeight: 600 }}>
                 {profile?.role || "agent"}
               </div>
             </div>
             <button onClick={signOut} title="Sign out" style={{
               background: "none", border: "none", padding: 6, cursor: "pointer",
-              color: C.textDim, display: "flex", alignItems: "center", borderRadius: 6,
+              color: C.textInvMuted, display: "flex", alignItems: "center", borderRadius: 6,
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = C.bgHover; e.currentTarget.style.color = C.red; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textDim; }}>
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(185,64,74,0.18)"; e.currentTarget.style.color = "#f0a4a8"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.textInvMuted; }}>
               <LogOut size={14} />
             </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: C.textDim, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            <TriskopeLogo size={20} />
-            <span>powered by <span style={{ color: C.blue, fontWeight: 600 }}>triskope</span></span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 9, color: C.goldSoft, letterSpacing: "0.22em", textTransform: "uppercase" }}>
+            <TriskopeLogo size={18} light />
+            <span>est. 2026 · grand strand</span>
           </div>
         </div>
       </aside>
