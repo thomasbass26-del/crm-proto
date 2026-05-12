@@ -3550,9 +3550,76 @@ export default function App() {
     const agent = AGENTS.find(a => a.id === previewAgentId) || AGENTS[0];
     const community = COMMUNITIES.find(c => c.id === previewCommunityId) || COMMUNITIES[0];
     const matchedReport = REPORTS.find(r => r.title.toLowerCase().includes(community.area.toLowerCase().split(" ")[0])) || REPORTS[0];
-    const featured = LISTINGS.filter(L => L.community === community.name).slice(0, 4);
+    const featured = LISTINGS.filter(L => L.community === community.name).slice(0, 6);
     const subdomain = agent.website || `${agent.name.toLowerCase().replace(/[^a-z]+/g, "")}.triskope.io`;
     const initials = agent.name.split(" ").map(n => n[0]).join("");
+    const lastName = agent.name.split(" ").slice(-1)[0];
+
+    // Luxury palette
+    const LUX = {
+      cream:     "#f9f6f0",
+      paper:     "#ffffff",
+      ink:       "#1a1a22",
+      ink2:      "#3a3a45",
+      mute:      "#7a7a85",
+      gold:      "#9c7f43",
+      goldSoft:  "#c2a76e",
+      hairline:  "#e8e2d4",
+      dark:      "#1a1a22",
+    };
+
+    // Hero imagery per community type — Unsplash CDN
+    const heroByType = {
+      Golf:    "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1600&q=80&auto=format&fit=crop",
+      Luxury:  "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1600&q=80&auto=format&fit=crop",
+      Family:  "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1600&q=80&auto=format&fit=crop",
+      Urban:   "https://images.unsplash.com/photo-1577495508326-19a1b3cf65b7?w=1600&q=80&auto=format&fit=crop",
+      Beach:   "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80&auto=format&fit=crop",
+    };
+    const heroPhoto = heroByType[community.type] || heroByType.Beach;
+
+    // Rotating listing photos
+    const listingPhotos = [
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1613553474179-e1eda3ea5734?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=800&q=80&auto=format&fit=crop",
+    ];
+
+    const heroEyebrow = {
+      Golf:   "Championship golf community",
+      Luxury: "Luxury coastal estates",
+      Family: "Coastal family living",
+      Urban:  "Walkable district",
+      Beach:  "Beachfront retreat",
+    }[community.type] || "Curated coastal living";
+
+    const heroTagline = pick([
+      "Where every morning begins with the sound of the Atlantic.",
+      "Live the way you've always pictured it. Quietly. Beautifully.",
+      "A short drive to the beach. A lifetime feeling at home.",
+      "Designed for the rare buyer who knows exactly what they want.",
+    ]);
+
+    const communityStory = pick([
+      `${community.name} is one of the few neighborhoods on the Grand Strand where you can still find the balance of privacy, light, and elevation — without giving up the proximity to ${community.area}. Most residences sit on generous lots with mature live oak coverage, and the architectural standard has stayed remarkably consistent since the early 2000s.`,
+      `Set just minutes from the ocean, ${community.name} has quietly become the address of choice for buyers who want resort-style amenities without the resort-style noise. The community is anchored by a private clubhouse, a small lake system, and a 24-hour staffed gatehouse.`,
+    ]);
+
+    const lifestyle = [
+      { title: "Beach access", text: "Three minutes by golf cart to the public beach access at " + community.area + ". Cabana service for residents." },
+      { title: "Dining",       text: pick(["A short drive to Marsh Walk for fresh oysters", "Members-only clubhouse dining nightly", "Walkable to seasonal seafood restaurants"]) + "." },
+      { title: "Schools",      text: "Zoned for one of the Grand Strand's highest-rated school districts. Private options nearby." },
+      { title: "Outdoors",     text: pick(["Two championship golf courses on-property", "Six miles of nature trails", "Tennis, pickleball, and a junior Olympic pool"]) + "." },
+    ];
+
+    const testimonialQuote = pick([
+      `"${agent.name.split(" ")[0]} knew this market block by block. We saw three homes the first morning, and one of them turned out to be perfect. Closed in 22 days."`,
+      `"What separated working with ${agent.name.split(" ")[0]} from every other agent we'd talked to was honesty. We were told no to two homes we loved — and thanked her later."`,
+      `"We bought sight-unseen from Connecticut. ${agent.name.split(" ")[0]} did a one-hour video walk-through of every property we asked about. Felt like she lived next door."`,
+    ]);
 
     const submitPreviewForm = (e) => {
       e.preventDefault();
@@ -3564,46 +3631,48 @@ export default function App() {
       setPreviewForm({ name: "", email: "", phone: "", message: "" });
     };
 
-    const previewInputStyle = {
-      width: "100%", padding: "10px 12px",
-      background: "#ffffff", border: "1px solid #d9dbe6", borderRadius: 8,
-      color: "#1a1a2e", fontSize: 14, outline: "none",
+    const inputStyle = {
+      width: "100%", padding: "12px 0",
+      background: "transparent",
+      border: "none", borderBottom: `1px solid ${LUX.hairline}`,
+      borderRadius: 0,
+      color: LUX.ink, fontSize: 14, outline: "none",
+      fontFamily: "inherit",
+      transition: "border-color 0.2s ease",
     };
-    const previewLabelStyle = { display: "block", fontSize: 11, fontWeight: 700, color: "#55557a", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" };
+    const labelStyle = {
+      display: "block", fontSize: 10, fontWeight: 600, color: LUX.mute,
+      marginBottom: 4, letterSpacing: "0.18em", textTransform: "uppercase",
+    };
+    const serif = `"Cormorant Garamond", "Cormorant", Georgia, "Hoefler Text", serif`;
+    const sans  = `"Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, sans-serif`;
 
     return (
       <div>
-        {/* Toolbar — admin controls (not part of the preview) */}
+        {/* Admin toolbar */}
         <Card style={{ marginBottom: 16, background: C.bgCard }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
             <Globe size={16} color={C.teal} />
             <div style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>Public page preview</div>
             <span style={{ fontSize: 11, color: C.textDim }}>
-              Simulating what a visitor sees on the agent's subdomain.
+              What a visitor sees on the agent's branded subdomain.
             </span>
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <div>
-                <label style={{ ...previewLabelStyle, color: C.textDim, marginBottom: 4 }}>Agent</label>
-                <select value={previewAgentId} onChange={e => setPreviewAgentId(Number(e.target.value))} style={{ ...selectStyle(), minHeight: 36, fontSize: 12 }}>
-                  {AGENTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ ...previewLabelStyle, color: C.textDim, marginBottom: 4 }}>Community</label>
-                <select value={previewCommunityId} onChange={e => setPreviewCommunityId(Number(e.target.value))} style={{ ...selectStyle(), minHeight: 36, fontSize: 12 }}>
-                  {COMMUNITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <select value={previewAgentId} onChange={e => setPreviewAgentId(Number(e.target.value))} style={{ ...selectStyle(), minHeight: 36, fontSize: 12 }}>
+                {AGENTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+              <select value={previewCommunityId} onChange={e => setPreviewCommunityId(Number(e.target.value))} style={{ ...selectStyle(), minHeight: 36, fontSize: 12 }}>
+                {COMMUNITIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
             </div>
           </div>
         </Card>
 
-        {/* The simulated public page */}
+        {/* Luxury public page */}
         <div style={{
-          background: "#f6f7fb", borderRadius: 14, overflow: "hidden",
+          background: LUX.cream, borderRadius: 14, overflow: "hidden",
           border: `1px solid ${C.border}`,
-          fontFamily: "-apple-system, system-ui, sans-serif",
-          color: "#1a1a2e",
+          fontFamily: sans, color: LUX.ink,
         }}>
           {/* Browser chrome */}
           <div style={{
@@ -3622,208 +3691,389 @@ export default function App() {
               fontSize: 12, color: "#55557a",
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
               border: "1px solid #d9dbe6",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
               https://{subdomain}/community/{community.slug}
             </div>
           </div>
 
-          {/* Agent header bar */}
-          <div style={{
-            background: "#ffffff", borderBottom: "1px solid #e2e3ec",
-            padding: "16px 24px",
-            display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+          {/* Site header */}
+          <header style={{
+            background: LUX.paper, borderBottom: `1px solid ${LUX.hairline}`,
+            padding: isMobile ? "16px 20px" : "20px 48px",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
           }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: "50%",
-              background: `linear-gradient(135deg, #5eead4, #818cf8)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#0a0a14", fontSize: 14, fontWeight: 700,
-            }}>{initials}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 17, fontWeight: 700 }}>{agent.name}</div>
-              <div style={{ fontSize: 11, color: "#55557a" }}>{agent.plan} agent · Grand Strand specialist</div>
+            <div>
+              <div style={{ fontFamily: serif, fontSize: isMobile ? 18 : 22, fontWeight: 500, color: LUX.ink, letterSpacing: "0.04em" }}>
+                {agent.name.toUpperCase()}
+              </div>
+              <div style={{ fontSize: 9, color: LUX.mute, letterSpacing: "0.24em", textTransform: "uppercase", marginTop: 2 }}>
+                {community.area} · Real Estate
+              </div>
             </div>
-            <nav style={{ display: isMobile ? "none" : "flex", gap: 20, fontSize: 13, color: "#55557a" }}>
+            <nav style={{ display: isMobile ? "none" : "flex", gap: 28, fontSize: 12, color: LUX.ink2, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 500 }}>
               <span>Communities</span>
               <span>Listings</span>
-              <span>Market Reports</span>
+              <span>Journal</span>
               <span>About</span>
             </nav>
             <button style={{
-              padding: "8px 14px", borderRadius: 8, border: "none",
-              background: "linear-gradient(135deg, #5eead4, #818cf8)",
-              color: "#0a0a14", fontSize: 12, fontWeight: 700, cursor: "pointer",
-            }}>Contact {agent.name.split(" ")[0]}</button>
-          </div>
+              padding: "10px 18px",
+              background: "transparent",
+              border: `1px solid ${LUX.ink}`,
+              color: LUX.ink, fontSize: 11, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase",
+              cursor: "pointer", fontFamily: "inherit",
+            }}>Contact</button>
+          </header>
 
-          {/* Hero */}
+          {/* HERO — full-bleed photo with overlay */}
           <div style={{
-            padding: "40px 24px 28px",
-            background: `linear-gradient(135deg, #f3f4fb 0%, #ecf6f5 100%)`,
-            borderBottom: "1px solid #e2e3ec",
+            position: "relative",
+            minHeight: isMobile ? 360 : 560,
+            backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 35%, rgba(0,0,0,0.55) 100%), url(${heroPhoto})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: isMobile ? "60px 24px" : "100px 48px",
+            textAlign: "center",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, fontSize: 12, color: "#55557a" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 10px", borderRadius: 9999, background: "#5eead426", color: "#0d8b75", fontWeight: 700 }}>
-                {community.icon} {community.type} community
-              </span>
-              <span>·</span>
-              <span>{community.area}</span>
-            </div>
-            <h1 style={{ fontSize: isMobile ? 28 : 38, fontWeight: 800, margin: "0 0 10px", lineHeight: 1.15 }}>
-              {community.name}
-            </h1>
-            <p style={{ fontSize: 16, color: "#55557a", margin: "0 0 20px", maxWidth: 640, lineHeight: 1.55 }}>
-              Live listings, school zone overlays, and the latest market trends — straight from the MLS.
-              When a home you'd love hits the market, I'll know before it's public. Get on the list.
-            </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button style={{
-                padding: "12px 18px", borderRadius: 8, border: "none",
-                background: "linear-gradient(135deg, #5eead4, #818cf8)",
-                color: "#0a0a14", fontSize: 14, fontWeight: 700, cursor: "pointer",
-              }}>Get the {community.name} report →</button>
-              <button style={{
-                padding: "12px 18px", borderRadius: 8,
-                background: "transparent", border: "1px solid #d9dbe6",
-                color: "#1a1a2e", fontSize: 14, fontWeight: 600, cursor: "pointer",
-              }}>Browse listings</button>
-            </div>
-          </div>
-
-          {/* Stats row */}
-          <div style={{
-            padding: "20px 24px", background: "#ffffff",
-            borderBottom: "1px solid #e2e3ec",
-            display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 16,
-          }}>
-            {[
-              { label: "Active listings", value: community.listings },
-              { label: "Avg price",       value: community.avgPrice },
-              { label: "30-day views",    value: community.views.toLocaleString() },
-              { label: "Avg days on market", value: matchedReport.dom },
-            ].map(s => (
-              <div key={s.label}>
-                <div style={{ fontSize: 11, color: "#55557a", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{s.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4, color: "#0d8b75" }}>{s.value}</div>
+            <div style={{ maxWidth: 740 }}>
+              <div style={{
+                display: "inline-block",
+                padding: "4px 14px",
+                border: `1px solid rgba(255,255,255,0.5)`,
+                color: "rgba(255,255,255,0.92)",
+                fontSize: 10, fontWeight: 600,
+                letterSpacing: "0.28em", textTransform: "uppercase",
+                marginBottom: 28,
+              }}>{heroEyebrow}</div>
+              <h1 style={{
+                fontFamily: serif,
+                fontSize: isMobile ? 44 : 76,
+                fontWeight: 400,
+                margin: "0 0 18px",
+                letterSpacing: "0.01em",
+                lineHeight: 1.05,
+                color: "#fff",
+              }}>{community.name}</h1>
+              <p style={{
+                fontFamily: serif, fontStyle: "italic",
+                fontSize: isMobile ? 17 : 22, lineHeight: 1.5,
+                margin: "0 auto 36px", maxWidth: 540,
+                color: "rgba(255,255,255,0.9)", fontWeight: 400,
+              }}>{heroTagline}</p>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                <button style={{
+                  padding: "14px 28px",
+                  background: LUX.gold, color: "#fff",
+                  border: "none", fontSize: 11, fontWeight: 700,
+                  letterSpacing: "0.18em", textTransform: "uppercase",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>Request the report</button>
+                <button style={{
+                  padding: "14px 28px",
+                  background: "transparent",
+                  border: "1px solid rgba(255,255,255,0.7)",
+                  color: "#fff", fontSize: 11, fontWeight: 600,
+                  letterSpacing: "0.18em", textTransform: "uppercase",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>View listings</button>
               </div>
-            ))}
+            </div>
           </div>
 
-          {/* Featured listings */}
-          <div style={{ padding: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Featured listings in {community.name}</h2>
-              <span style={{ fontSize: 12, color: "#55557a" }}>{featured.length || 0} of {LISTINGS.filter(L => L.community === community.name).length} shown</span>
+          {/* Stats — minimal, with vertical dividers */}
+          <section style={{
+            background: LUX.paper, padding: isMobile ? "32px 20px" : "44px 48px",
+            borderBottom: `1px solid ${LUX.hairline}`,
+          }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 0 }}>
+              {[
+                { label: "Active Listings", value: community.listings },
+                { label: "Median Price",    value: community.avgPrice },
+                { label: "Days On Market",  value: matchedReport.dom },
+                { label: "30-Day Visitors", value: community.views.toLocaleString() },
+              ].map((s, i, arr) => (
+                <div key={s.label} style={{
+                  textAlign: "center",
+                  padding: isMobile ? "12px 8px" : "8px 16px",
+                  borderRight: (!isMobile && i < arr.length - 1) ? `1px solid ${LUX.hairline}` : "none",
+                  borderBottom: (isMobile && i < arr.length - 2) ? `1px solid ${LUX.hairline}` : "none",
+                }}>
+                  <div style={{ fontSize: 9, color: LUX.mute, letterSpacing: "0.24em", textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontFamily: serif, fontSize: isMobile ? 30 : 40, fontWeight: 400, color: LUX.ink, lineHeight: 1 }}>
+                    {s.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Featured properties */}
+          <section style={{ background: LUX.cream, padding: isMobile ? "48px 20px" : "72px 48px" }}>
+            <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 48 }}>
+              <div style={{ fontSize: 10, color: LUX.gold, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 700, marginBottom: 14 }}>
+                The Collection
+              </div>
+              <h2 style={{ fontFamily: serif, fontSize: isMobile ? 30 : 42, fontWeight: 400, color: LUX.ink, margin: 0, letterSpacing: "0.01em" }}>
+                Currently for sale
+              </h2>
+              <div style={{ width: 40, height: 1, background: LUX.gold, margin: "20px auto 0" }} />
             </div>
             {featured.length === 0 ? (
-              <div style={{ padding: 30, textAlign: "center", color: "#55557a", border: "1px dashed #d9dbe6", borderRadius: 10, fontSize: 13 }}>
-                No public listings to display for this community in the demo data — pick another community above to see featured cards.
+              <div style={{ textAlign: "center", padding: 32, color: LUX.mute, fontFamily: serif, fontSize: 17, fontStyle: "italic" }}>
+                Select another community above to preview featured listings.
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-                {featured.map(L => (
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))", gap: isMobile ? 24 : 32 }}>
+                {featured.map((L, i) => (
                   <div key={L.id} style={{
-                    background: "#ffffff", border: "1px solid #e2e3ec",
-                    borderRadius: 10, overflow: "hidden",
-                  }}>
+                    background: LUX.paper,
+                    border: `1px solid ${LUX.hairline}`,
+                    overflow: "hidden",
+                    transition: "transform 0.4s ease, box-shadow 0.4s ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 16px 32px rgba(26,26,34,0.08)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
                     <div style={{
-                      height: 90,
-                      background: "linear-gradient(135deg, #5eead430, #818cf830, #a78bfa30)",
-                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36,
-                    }}>{L.photo}</div>
-                    <div style={{ padding: 12 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: "#0d8b75" }}>{formatPrice(L.price)}</div>
-                      <div style={{ fontSize: 12, color: "#1a1a2e", marginTop: 2 }}>{L.address}</div>
-                      <div style={{ fontSize: 11, color: "#55557a", marginTop: 6 }}>
-                        {L.beds} bd · {L.baths} ba · {L.sqft.toLocaleString()} sqft
+                      height: 240,
+                      backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0) 60%, rgba(0,0,0,0.35) 100%), url(${listingPhotos[i % listingPhotos.length]})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      position: "relative",
+                    }}>
+                      {L.days <= 5 && (
+                        <span style={{
+                          position: "absolute", top: 16, left: 16,
+                          padding: "5px 12px",
+                          background: LUX.gold, color: "#fff",
+                          fontSize: 9, fontWeight: 700,
+                          letterSpacing: "0.2em", textTransform: "uppercase",
+                        }}>New</span>
+                      )}
+                    </div>
+                    <div style={{ padding: isMobile ? 20 : 28 }}>
+                      <div style={{ fontFamily: serif, fontSize: 26, fontWeight: 400, color: LUX.ink, marginBottom: 6, letterSpacing: "0.01em" }}>
+                        {formatPrice(L.price)}
+                      </div>
+                      <div style={{ fontSize: 13, color: LUX.ink, marginBottom: 14 }}>{L.address}</div>
+                      <div style={{ display: "flex", gap: 16, fontSize: 11, color: LUX.mute, letterSpacing: "0.12em", textTransform: "uppercase", paddingTop: 14, borderTop: `1px solid ${LUX.hairline}` }}>
+                        <span>{L.beds} BED</span>
+                        <span>{L.baths} BATH</span>
+                        <span>{L.sqft.toLocaleString()} SQFT</span>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Lead capture form */}
-          <div style={{
-            padding: "28px 24px", background: "#ffffff",
-            borderTop: "1px solid #e2e3ec",
-          }}>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: 24, alignItems: "start" }}>
+          {/* About the community — editorial 2-col with pull quote */}
+          <section style={{ background: LUX.paper, padding: isMobile ? "48px 20px" : "80px 48px", borderTop: `1px solid ${LUX.hairline}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: isMobile ? 32 : 64, alignItems: "center", maxWidth: 1080, margin: "0 auto" }}>
               <div>
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#0d8b75", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
-                  Get the full {community.name} report
+                <div style={{ fontSize: 10, color: LUX.gold, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 700, marginBottom: 14 }}>
+                  The Community
                 </div>
-                <h3 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 10px" }}>I'll send you the inside view.</h3>
-                <p style={{ fontSize: 14, color: "#55557a", lineHeight: 1.55, margin: "0 0 14px" }}>
-                  Pricing trends, recent comps, what's moving fast, what's sitting,
-                  and three off-market homes I think you'd love. No spam — just one email
-                  from {agent.name.split(" ")[0]} once a month.
+                <h2 style={{ fontFamily: serif, fontSize: isMobile ? 30 : 40, fontWeight: 400, color: LUX.ink, margin: "0 0 22px", letterSpacing: "0.01em", lineHeight: 1.1 }}>
+                  An address that quietly outpaces the rest of the Grand Strand.
+                </h2>
+                <p style={{ fontSize: 15, color: LUX.ink2, lineHeight: 1.75, margin: "0 0 18px" }}>
+                  {communityStory}
                 </p>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "#f6f7fb", borderRadius: 10 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #5eead4, #818cf8)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#0a0a14", fontSize: 12, fontWeight: 700,
-                  }}>{initials}</div>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{agent.name}</div>
-                    <div style={{ fontSize: 11, color: "#55557a" }}>Licensed agent · Grand Strand</div>
-                  </div>
+                <p style={{ fontSize: 15, color: LUX.ink2, lineHeight: 1.75, margin: "0 0 22px" }}>
+                  Inventory rarely exceeds two dozen homes at a time and the median price has appreciated {matchedReport.priceChange.replace("+", "")} year over year. Buyers in this range tend to be relocations from the Northeast and Midwest, often cash, increasingly drawn by the lifestyle as much as the property itself.
+                </p>
+                <a href="#" style={{ fontSize: 11, color: LUX.gold, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, textDecoration: "none", borderBottom: `1px solid ${LUX.gold}`, paddingBottom: 3 }}>
+                  Read the latest market report →
+                </a>
+              </div>
+              <div style={{
+                padding: isMobile ? "28px" : "44px 36px",
+                borderLeft: isMobile ? "none" : `2px solid ${LUX.gold}`,
+                borderTop: isMobile ? `2px solid ${LUX.gold}` : "none",
+              }}>
+                <div style={{ fontFamily: serif, fontSize: isMobile ? 22 : 28, fontStyle: "italic", color: LUX.ink, lineHeight: 1.45, letterSpacing: "0.005em" }}>
+                  {testimonialQuote}
+                </div>
+                <div style={{ marginTop: 24, fontSize: 11, color: LUX.mute, letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 600 }}>
+                  — A recent buyer · {community.area}
                 </div>
               </div>
+            </div>
+          </section>
 
-              <form onSubmit={submitPreviewForm} style={{
-                background: "#f6f7fb", borderRadius: 12, padding: 18,
-                border: "1px solid #e2e3ec",
-              }}>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={previewLabelStyle}>Your name</label>
-                  <input style={previewInputStyle} value={previewForm.name}
+          {/* Lifestyle — what's nearby */}
+          <section style={{ background: LUX.cream, padding: isMobile ? "48px 20px" : "72px 48px", borderTop: `1px solid ${LUX.hairline}` }}>
+            <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 48 }}>
+              <div style={{ fontSize: 10, color: LUX.gold, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 700, marginBottom: 14 }}>
+                Lifestyle
+              </div>
+              <h2 style={{ fontFamily: serif, fontSize: isMobile ? 28 : 38, fontWeight: 400, color: LUX.ink, margin: 0, letterSpacing: "0.01em" }}>
+                What's within reach
+              </h2>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 20 : 32, maxWidth: 1080, margin: "0 auto" }}>
+              {lifestyle.map((item, i) => (
+                <div key={item.title} style={{ textAlign: "center", padding: "0 8px" }}>
+                  <div style={{ width: 56, height: 1, background: LUX.gold, margin: "0 auto 18px" }} />
+                  <div style={{ fontFamily: serif, fontSize: isMobile ? 18 : 22, fontWeight: 500, color: LUX.ink, marginBottom: 12, letterSpacing: "0.01em" }}>
+                    {item.title}
+                  </div>
+                  <p style={{ fontSize: 13, color: LUX.ink2, lineHeight: 1.7, margin: 0 }}>{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Meet your agent */}
+          <section style={{ background: LUX.paper, padding: isMobile ? "48px 20px" : "80px 48px", borderTop: `1px solid ${LUX.hairline}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1.5fr", gap: isMobile ? 28 : 64, alignItems: "center", maxWidth: 980, margin: "0 auto" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{
+                  width: isMobile ? 180 : 240, height: isMobile ? 180 : 240,
+                  margin: "0 auto", borderRadius: "50%",
+                  background: `linear-gradient(135deg, #1a1a22 0%, #3a3a45 100%)`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: LUX.goldSoft,
+                  fontFamily: serif, fontSize: isMobile ? 56 : 84, fontWeight: 400,
+                  letterSpacing: "0.05em",
+                  border: `1px solid ${LUX.gold}`,
+                  boxShadow: "0 12px 32px rgba(26,26,34,0.12)",
+                }}>{initials}</div>
+                <div style={{ marginTop: 20, fontSize: 10, color: LUX.gold, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 700 }}>
+                  Your Agent
+                </div>
+              </div>
+              <div>
+                <h2 style={{ fontFamily: serif, fontSize: isMobile ? 30 : 40, fontWeight: 400, color: LUX.ink, margin: "0 0 6px", letterSpacing: "0.01em" }}>
+                  {agent.name}
+                </h2>
+                <div style={{ fontSize: 11, color: LUX.gold, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, marginBottom: 22 }}>
+                  {community.area} Specialist · {agent.plan} Producer
+                </div>
+                <p style={{ fontSize: 15, color: LUX.ink2, lineHeight: 1.75, margin: "0 0 14px" }}>
+                  {lastName.charAt(0)}{lastName.slice(1).toLowerCase()} has spent the last decade walking nearly every block of the Grand Strand. Her clients are buyers and sellers who don't have time for the runaround — they want a clear picture of the market, an honest read on each home, and an agent who will tell them when to walk away.
+                </p>
+                <p style={{ fontSize: 15, color: LUX.ink2, lineHeight: 1.75, margin: "0 0 22px" }}>
+                  Closed {agent.closings} homes last year, with a median time to offer of 11 days. References available on request.
+                </p>
+                <div style={{ display: "flex", gap: 24, flexWrap: "wrap", fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: LUX.ink, fontWeight: 600 }}>
+                  <a href="#" style={{ color: LUX.ink, textDecoration: "none", borderBottom: `1px solid ${LUX.gold}`, paddingBottom: 3 }}>Schedule a call</a>
+                  <a href="#" style={{ color: LUX.ink, textDecoration: "none", borderBottom: `1px solid ${LUX.gold}`, paddingBottom: 3 }}>Email {agent.name.split(" ")[0]}</a>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Lead capture form */}
+          <section style={{ background: LUX.dark, color: "#fff", padding: isMobile ? "48px 20px" : "80px 48px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.1fr 1fr", gap: isMobile ? 32 : 80, maxWidth: 1080, margin: "0 auto", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 10, color: LUX.goldSoft, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 700, marginBottom: 16 }}>
+                  Stay in front of the market
+                </div>
+                <h2 style={{ fontFamily: serif, fontSize: isMobile ? 32 : 44, fontWeight: 400, color: "#fff", margin: "0 0 22px", letterSpacing: "0.01em", lineHeight: 1.15 }}>
+                  Receive the {community.name} report.
+                </h2>
+                <p style={{ fontSize: 15, color: "rgba(255,255,255,0.75)", lineHeight: 1.75, margin: 0, maxWidth: 480 }}>
+                  Once a month — pricing trends, recent comps, what's moving fast,
+                  what's sitting, and a small handful of off-market homes worth knowing about.
+                  Written by {agent.name.split(" ")[0]} personally. Unsubscribe at any time.
+                </p>
+              </div>
+              <form onSubmit={submitPreviewForm} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <div>
+                  <label style={{ ...labelStyle, color: "rgba(255,255,255,0.6)" }}>Name</label>
+                  <input style={{ ...inputStyle, color: "#fff", borderBottomColor: "rgba(255,255,255,0.3)" }}
+                    value={previewForm.name}
                     onChange={e => setPreviewForm({ ...previewForm, name: e.target.value })}
                     placeholder="Jane Smith" />
                 </div>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={previewLabelStyle}>Email</label>
-                  <input style={previewInputStyle} type="email" value={previewForm.email}
+                <div>
+                  <label style={{ ...labelStyle, color: "rgba(255,255,255,0.6)" }}>Email</label>
+                  <input style={{ ...inputStyle, color: "#fff", borderBottomColor: "rgba(255,255,255,0.3)" }}
+                    type="email"
+                    value={previewForm.email}
                     onChange={e => setPreviewForm({ ...previewForm, email: e.target.value })}
                     placeholder="jane@example.com" />
                 </div>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={previewLabelStyle}>Phone (optional)</label>
-                  <input style={previewInputStyle} value={previewForm.phone}
+                <div>
+                  <label style={{ ...labelStyle, color: "rgba(255,255,255,0.6)" }}>Phone (optional)</label>
+                  <input style={{ ...inputStyle, color: "#fff", borderBottomColor: "rgba(255,255,255,0.3)" }}
+                    value={previewForm.phone}
                     onChange={e => setPreviewForm({ ...previewForm, phone: e.target.value })}
                     placeholder="(843) 555-0100" />
                 </div>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={previewLabelStyle}>Anything specific?</label>
-                  <textarea style={{ ...previewInputStyle, minHeight: 70, resize: "vertical", fontFamily: "inherit" }}
+                <div>
+                  <label style={{ ...labelStyle, color: "rgba(255,255,255,0.6)" }}>What are you looking for?</label>
+                  <textarea style={{ ...inputStyle, color: "#fff", borderBottomColor: "rgba(255,255,255,0.3)", minHeight: 60, resize: "vertical", paddingTop: 12 }}
                     value={previewForm.message}
                     onChange={e => setPreviewForm({ ...previewForm, message: e.target.value })}
-                    placeholder="Looking for a 3-bedroom in a golf community under $500K..." />
+                    placeholder="A 3-bedroom in a golf community under $500K..." />
                 </div>
                 <button type="submit" style={{
-                  width: "100%", padding: "12px 16px", borderRadius: 8, border: "none",
-                  background: "linear-gradient(135deg, #5eead4, #818cf8)",
-                  color: "#0a0a14", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                }}>Send me the report</button>
-                <div style={{ fontSize: 10, color: "#55557a", textAlign: "center", marginTop: 8 }}>
+                  marginTop: 8,
+                  padding: "16px 28px",
+                  background: LUX.gold, color: "#fff",
+                  border: "none",
+                  fontSize: 11, fontWeight: 700,
+                  letterSpacing: "0.22em", textTransform: "uppercase",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>Request the report →</button>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em" }}>
                   By submitting, you agree to be contacted by {agent.name.split(" ")[0]}.
                 </div>
               </form>
             </div>
-          </div>
+          </section>
 
           {/* Footer */}
-          <div style={{
-            padding: "16px 24px", background: "#0a0a14",
-            color: "#8888a8", fontSize: 11,
-            display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+          <footer style={{
+            background: "#0e0e15", color: "rgba(255,255,255,0.5)",
+            padding: isMobile ? "32px 20px" : "40px 48px",
+            display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.5fr 1fr 1fr 1fr",
+            gap: isMobile ? 24 : 48,
           }}>
-            <div>© {new Date().getFullYear()} {agent.name} · Powered by <span style={{ color: "#5eead4", fontWeight: 700 }}>triskope</span></div>
-            <div>Equal Housing Opportunity · {community.area}</div>
-          </div>
+            <div>
+              <div style={{ fontFamily: serif, fontSize: 18, color: "#fff", letterSpacing: "0.04em", marginBottom: 12 }}>
+                {agent.name.toUpperCase()}
+              </div>
+              <div style={{ fontSize: 12, lineHeight: 1.7 }}>
+                Coastal Carolina luxury real estate.<br />
+                Licensed in South Carolina.<br />
+                {community.area}, SC.
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: LUX.goldSoft, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>Discover</div>
+              <div style={{ fontSize: 12, lineHeight: 1.9 }}>Communities<br />Listings<br />Market Reports<br />Press</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: LUX.goldSoft, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>Connect</div>
+              <div style={{ fontSize: 12, lineHeight: 1.9 }}>Contact<br />Schedule a Call<br />Instagram<br />LinkedIn</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: LUX.goldSoft, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>Compliance</div>
+              <div style={{ fontSize: 12, lineHeight: 1.9 }}>Privacy<br />Terms<br />Equal Housing Opportunity</div>
+            </div>
+            <div style={{
+              gridColumn: isMobile ? "1" : "1 / -1",
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              paddingTop: 20, marginTop: 8,
+              fontSize: 10, color: "rgba(255,255,255,0.35)",
+              display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8,
+              letterSpacing: "0.08em",
+            }}>
+              <div>© {new Date().getFullYear()} {agent.name}. All rights reserved.</div>
+              <div>Powered by <span style={{ color: LUX.goldSoft, letterSpacing: "0.16em" }}>TRISKOPE</span></div>
+            </div>
+          </footer>
         </div>
       </div>
     );
