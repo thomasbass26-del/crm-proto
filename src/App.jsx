@@ -25,6 +25,19 @@ const C = {
 // Icon registry for activity types
 const ICONS = { Eye, FileText, Mail, Phone, MessageSquare, MapPin, Calendar, Activity, Tag };
 
+// Format a timestamp as a relative "time ago" string (e.g., "2h ago")
+function timeAgo(input) {
+  if (!input) return "";
+  const d = typeof input === "string" ? new Date(input) : input;
+  const seconds = Math.max(1, Math.floor((Date.now() - d.getTime()) / 1000));
+  if (seconds < 60)     return seconds + "s ago";
+  if (seconds < 3600)   return Math.floor(seconds / 60) + "m ago";
+  if (seconds < 86400)  return Math.floor(seconds / 3600) + "h ago";
+  if (seconds < 604800) return Math.floor(seconds / 86400) + "d ago";
+  if (seconds < 2592000)return Math.floor(seconds / 604800) + "w ago";
+  return d.toLocaleDateString();
+}
+
 const TriskopeLogo = ({ size = 36 }) => {
   const r = size * 0.22;
   const cx = size / 2, cy = size / 2;
@@ -49,155 +62,8 @@ const AGENTS = [
   { id: 5, name: "Amy Rodriguez", plan: "Pro", leads: 15, closings: 2, revenue: 45000, website: "amyrodriguez.triskope.io", reports: 4, communities: 3 },
 ];
 
-const LEADS = [
-  {
-    id: 1, name: "Robert Williams", source: "Market Report — Myrtle Beach", status: "hot", score: 94,
-    agent: "Sarah Mitchell", interest: "Buying", budget: "$350K-$450K", area: "Myrtle Beach",
-    phone: "(843) 555-0142", email: "rwilliams@gmail.com", lastContact: "2h ago", addedDays: 12,
-    tags: ["pre-approved", "out-of-state", "oceanfront"],
-    aiNotes: "High-intent buyer relocating from Charlotte. Viewed the Myrtle Beach market report 4 times in the past week and clicked through to 3 oceanfront condo listings on Ocean Boulevard. Pre-approval letter on file ($475K). Likely closing window: 30-60 days.",
-    activity: [
-      { type: "view", text: "Viewed 1247 Ocean Blvd #802", time: "2h ago", icon: "Eye" },
-      { type: "view", text: "Re-opened Myrtle Beach market report", time: "5h ago", icon: "FileText" },
-      { type: "email", text: "Opened drip email “Spring buyers guide”", time: "yesterday", icon: "Mail" },
-      { type: "call", text: "Sarah called — 8 min conversation", time: "3 days ago", icon: "Phone" },
-      { type: "form", text: "Submitted contact form", time: "12 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 2, name: "Jennifer Adams", source: "Community Page — Barefoot Resort", status: "hot", score: 88,
-    agent: "James Parker", interest: "Buying", budget: "$500K-$700K", area: "North Myrtle Beach",
-    phone: "(843) 555-0287", email: "jadams.nyc@outlook.com", lastContact: "yesterday", addedDays: 8,
-    tags: ["relocating", "golf", "luxury"],
-    aiNotes: "Relocating from Manhattan after husband's retirement. Budget flexible, primary interest is Barefoot Resort and Grande Dunes. Husband plays golf 4x/week — golf community is critical. Mentioned wanting to be settled before October.",
-    activity: [
-      { type: "view", text: "Viewed Barefoot Resort homes", time: "yesterday", icon: "Eye" },
-      { type: "email", text: "Replied to James's email", time: "yesterday", icon: "Mail" },
-      { type: "call", text: "James called — 22 min discovery call", time: "2 days ago", icon: "Phone" },
-      { type: "form", text: "Submitted community page form", time: "8 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 3, name: "David Thompson", source: "Agent Website", status: "nurture", score: 62,
-    agent: "Lisa Chen", interest: "Selling", budget: "Listing ~$320K", area: "Surfside Beach",
-    phone: "(843) 555-0319", email: "dthompson74@yahoo.com", lastContact: "5 days ago", addedDays: 21,
-    tags: ["seller", "timeline-3-6mo"],
-    aiNotes: "Considering selling his Surfside Beach home in 3-6 months. Current Zestimate ~$320K. Wants to upgrade to single-story before retirement. Hasn't decided yet on listing now vs. spring 2026.",
-    activity: [
-      { type: "view", text: "Viewed CMA estimate page", time: "5 days ago", icon: "FileText" },
-      { type: "email", text: "Opened “What's your home worth?”", time: "1 week ago", icon: "Mail" },
-      { type: "form", text: "Requested home valuation", time: "21 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 4, name: "Maria Garcia", source: "Market Report — Conway", status: "nurture", score: 55,
-    agent: "Marcus Johnson", interest: "Buying", budget: "$200K-$300K", area: "Conway",
-    phone: "(843) 555-0451", email: "maria.garcia.sc@gmail.com", lastContact: "1 week ago", addedDays: 18,
-    tags: ["first-time", "needs-preapproval"],
-    aiNotes: "First-time buyer, single mom with two kids. Browsing 3BR homes in Conway under $290K. Has not yet secured pre-approval; Marcus referred her to a local lender. Strong school district priority.",
-    activity: [
-      { type: "view", text: "Viewed 14 Conway listings", time: "1 week ago", icon: "Eye" },
-      { type: "email", text: "Marcus sent lender referral", time: "1 week ago", icon: "Mail" },
-      { type: "form", text: "Subscribed to Conway market report", time: "18 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 5, name: "Karen Lee", source: "Market Report — Pawleys Island", status: "hot", score: 91,
-    agent: "Sarah Mitchell", interest: "Buying", budget: "$400K-$550K", area: "Pawleys Island",
-    phone: "(843) 555-0598", email: "kmlee.coastal@gmail.com", lastContact: "30 min ago", addedDays: 6,
-    tags: ["pre-approved", "waterfront", "ready-to-offer"],
-    aiNotes: "Pre-approved up to $575K. Specifically wants Pawleys Island creekfront or oceanfront. Just toured 142 Springs Ave in person on Saturday — said she would “make an offer this week” pending inspection report. Closing on her current home in Atlanta in 3 weeks.",
-    activity: [
-      { type: "call", text: "Sarah called — discussing offer terms", time: "30 min ago", icon: "Phone" },
-      { type: "view", text: "Re-viewed 142 Springs Ave", time: "today", icon: "Eye" },
-      { type: "showing", text: "In-person showing — 142 Springs Ave", time: "Saturday", icon: "MapPin" },
-      { type: "form", text: "Submitted Pawleys Island form", time: "6 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 6, name: "Steve Chen", source: "Agent Website", status: "new", score: 45,
-    agent: null, interest: "Buying", budget: "$250K-$350K", area: "Murrells Inlet",
-    phone: "(843) 555-0673", email: "stevechen.work@gmail.com", lastContact: "—", addedDays: 1,
-    tags: ["new-lead", "auto-qualifying"],
-    aiNotes: "Just signed up yesterday. AI is auto-qualifying based on session behavior: 8 listings viewed, 4.2 min avg engagement, returned to site 3x. No phone conversation yet. Recommended next action: warm outreach within 24h.",
-    activity: [
-      { type: "view", text: "Viewed 8 Murrells Inlet listings", time: "yesterday", icon: "Eye" },
-      { type: "form", text: "Signed up for newsletter", time: "yesterday", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 7, name: "Patricia Moore", source: "Community Page — Carolina Forest", status: "new", score: 52,
-    agent: null, interest: "Buying", budget: "$300K-$400K", area: "Carolina Forest",
-    phone: "(843) 555-0712", email: "p.moore.family@outlook.com", lastContact: "—", addedDays: 2,
-    tags: ["family", "schools", "new-lead"],
-    aiNotes: "Family of four relocating from Raleigh for her husband's hospital job at Conway Medical. Two kids ages 8 and 11 — schools are her top priority. Asked specifically about Ocean Bay and Forestbrook elementary zones.",
-    activity: [
-      { type: "view", text: "Viewed school district overlay", time: "yesterday", icon: "Eye" },
-      { type: "view", text: "Viewed Carolina Forest community page", time: "2 days ago", icon: "Eye" },
-      { type: "form", text: "Submitted contact form", time: "2 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 8, name: "Tom Baker", source: "Community Page — Grande Dunes", status: "cold", score: 28,
-    agent: "Amy Rodriguez", interest: "Investing", budget: "$600K+", area: "Myrtle Beach",
-    phone: "(843) 555-0884", email: "tbaker.investments@protonmail.com", lastContact: "3 weeks ago", addedDays: 64,
-    tags: ["investor", "low-engagement"],
-    aiNotes: "Investor based in Cleveland. Browsed Grande Dunes a few times two months ago. Hasn't engaged with emails in 3+ weeks. Likely paused his search.",
-    activity: [
-      { type: "email", text: "Email bounced — auto reply", time: "3 weeks ago", icon: "Mail" },
-      { type: "view", text: "Last site visit", time: "5 weeks ago", icon: "Eye" },
-      { type: "form", text: "Submitted Grande Dunes form", time: "9 weeks ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 9, name: "Daniel & Rachel Foster", source: "Market Report — North Myrtle Beach", status: "hot", score: 86,
-    agent: "James Parker", interest: "Buying", budget: "$650K-$850K", area: "North Myrtle Beach",
-    phone: "(843) 555-0921", email: "fosters.move@gmail.com", lastContact: "today", addedDays: 4,
-    tags: ["dual-income", "pre-approved", "urgent"],
-    aiNotes: "Tech couple from Austin, both remote. Pre-approved up to $900K. Looking for a primary residence with home office and pool. Have a 30-day timeline tied to lease end in Austin.",
-    activity: [
-      { type: "showing", text: "Toured 3 homes in NMB with James", time: "today", icon: "MapPin" },
-      { type: "view", text: "Re-viewed NMB market report", time: "yesterday", icon: "FileText" },
-      { type: "email", text: "Booked Saturday tour", time: "2 days ago", icon: "Mail" },
-      { type: "form", text: "Submitted NMB report form", time: "4 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 10, name: "Linda Wexler", source: "Community Page — Litchfield Beach", status: "nurture", score: 68,
-    agent: "Sarah Mitchell", interest: "Buying", budget: "$450K-$600K", area: "Pawleys Island",
-    phone: "(843) 555-0987", email: "lwex55@yahoo.com", lastContact: "6 days ago", addedDays: 32,
-    tags: ["second-home", "boomer"],
-    aiNotes: "Looking for a second home / future retirement property in Litchfield. Husband not on board yet — she's the decision driver. Plans to visit in 6 weeks.",
-    activity: [
-      { type: "email", text: "Replied — confirming September visit", time: "6 days ago", icon: "Mail" },
-      { type: "view", text: "Viewed Litchfield Beach listings", time: "10 days ago", icon: "Eye" },
-      { type: "form", text: "Subscribed to community updates", time: "32 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 11, name: "Marcus & Tonya Reed", source: "Agent Website", status: "nurture", score: 71,
-    agent: "Marcus Johnson", interest: "Buying", budget: "$280K-$340K", area: "Carolina Forest",
-    phone: "(843) 555-1042", email: "reed.family5@gmail.com", lastContact: "4 days ago", addedDays: 14,
-    tags: ["growing-family", "needs-4br"],
-    aiNotes: "Local family currently renting, looking to buy first home. Wife pregnant with their third — need 4BR minimum. Pre-approval in progress; loan officer expects clearance within 2 weeks.",
-    activity: [
-      { type: "view", text: "Viewed 4BR Carolina Forest homes", time: "4 days ago", icon: "Eye" },
-      { type: "email", text: "Marcus sent 4BR shortlist", time: "5 days ago", icon: "Mail" },
-      { type: "form", text: "Requested 4BR alerts", time: "14 days ago", icon: "MessageSquare" },
-    ],
-  },
-  {
-    id: 12, name: "Anthony Russo", source: "Community Page — Market Common", status: "new", score: 58,
-    agent: null, interest: "Buying", budget: "$375K-$475K", area: "Myrtle Beach",
-    phone: "(843) 555-1158", email: "arusso.philly@gmail.com", lastContact: "—", addedDays: 3,
-    tags: ["walkable", "new-lead"],
-    aiNotes: "Just relocated to Myrtle Beach for new restaurant management job. Currently renting near Market Common — wants to buy in the same walkable district. First-time buyer; no pre-approval yet.",
-    activity: [
-      { type: "view", text: "Viewed Market Common condos", time: "yesterday", icon: "Eye" },
-      { type: "form", text: "Submitted Market Common form", time: "3 days ago", icon: "MessageSquare" },
-    ],
-  },
-];
+// Leads are fetched from Supabase at runtime; see useEffect in App below.
+
 
 const REPORTS = [
   { id: 1, title: "Myrtle Beach", slug: "myrtle-beach", agent: "Sarah Mitchell", views: 1247, leads: 18, avgPrice: "$345,000", priceChange: "+5.2%", inv: 342, dom: 45, status: "published" },
@@ -242,12 +108,8 @@ const STAGES = [
   { id: "closed",    label: "Closed",    color: "#55557a" }, // dim
 ];
 
-// Initial stage assignment per lead id — derived from each lead's situation
-const LEAD_STAGE_INIT = {
-  1: "qualified", 2: "contacted", 3: "qualified", 4: "contacted",
-  5: "offer",     6: "new",       7: "new",       8: "contacted",
-  9: "showing",  10: "contacted",11: "qualified",12: "new",
-};
+// Initial stage assignment is now stored directly on each lead row in the
+// database (leads.stage), so no static map is needed here.
 
 const STATUS_FILTERS = [
   { id: "all", label: "All" },
@@ -292,14 +154,14 @@ const LISTING_COMMUNITIES = ["Oceanfront", "Barefoot Resort", "Grande Dunes", "C
 
 // Static notification feed (in-memory; users mark read interactively)
 const NOTIFICATIONS = [
-  { id: 1,  type: "new-lead",   title: "New lead — Anthony Russo",      text: "Submitted form via Market Common community page",       time: "12 min ago",  leadId: 12, defaultRead: false, color: "#818cf8" },
-  { id: 2,  type: "hot-alert",  title: "Karen Lee is back on the site", text: "Re-viewed 142 Springs Ave for the 3rd time today",      time: "47 min ago",  leadId: 5,  defaultRead: false, color: "#ef4444" },
-  { id: 3,  type: "task-due",   title: "Follow-up due today",            text: "Send shortlist to the Fosters (lease ends in 30d)",     time: "2h ago",      leadId: 9,  defaultRead: false, color: "#f59e0b" },
-  { id: 4,  type: "ai-suggest", title: "AI suggestion",                  text: "Tom Baker's engagement dropped — try a re-engagement email", time: "3h ago",  leadId: 8,  defaultRead: false, color: "#a78bfa" },
-  { id: 5,  type: "showing",    title: "Showing confirmed",              text: "James booked Saturday tour for the Fosters in NMB",     time: "yesterday",   leadId: 9,  defaultRead: false, color: "#10b981" },
-  { id: 6,  type: "new-lead",   title: "New lead — Steve Chen",          text: "Just signed up. Auto-qualifying based on session signals", time: "yesterday", leadId: 6,  defaultRead: true,  color: "#818cf8" },
-  { id: 7,  type: "ai-suggest", title: "AI suggestion",                  text: "Robert Williams is likely to write an offer in 30-60 days — move to Showing?", time: "yesterday", leadId: 1, defaultRead: true, color: "#a78bfa" },
-  { id: 8,  type: "hot-alert",  title: "Pre-approval cleared",           text: "Marcus & Tonya Reed underwriting cleared — move to Qualified", time: "2 days ago", leadId: 11, defaultRead: true, color: "#ef4444" },
+  { id: 1,  type: "new-lead",   title: "New lead — Anthony Russo",      text: "Submitted form via Market Common community page",       time: "12 min ago",  leadId: "33333333-3333-3333-3333-00000000000C", defaultRead: false, color: "#818cf8" },
+  { id: 2,  type: "hot-alert",  title: "Karen Lee is back on the site", text: "Re-viewed 142 Springs Ave for the 3rd time today",      time: "47 min ago",  leadId: "33333333-3333-3333-3333-000000000005", defaultRead: false, color: "#ef4444" },
+  { id: 3,  type: "task-due",   title: "Follow-up due today",            text: "Send shortlist to the Fosters (lease ends in 30d)",     time: "2h ago",      leadId: "33333333-3333-3333-3333-000000000009", defaultRead: false, color: "#f59e0b" },
+  { id: 4,  type: "ai-suggest", title: "AI suggestion",                  text: "Tom Baker's engagement dropped — try a re-engagement email", time: "3h ago",  leadId: "33333333-3333-3333-3333-000000000008", defaultRead: false, color: "#a78bfa" },
+  { id: 5,  type: "showing",    title: "Showing confirmed",              text: "James booked Saturday tour for the Fosters in NMB",     time: "yesterday",   leadId: "33333333-3333-3333-3333-000000000009", defaultRead: false, color: "#10b981" },
+  { id: 6,  type: "new-lead",   title: "New lead — Steve Chen",          text: "Just signed up. Auto-qualifying based on session signals", time: "yesterday", leadId: "33333333-3333-3333-3333-000000000006", defaultRead: true,  color: "#818cf8" },
+  { id: 7,  type: "ai-suggest", title: "AI suggestion",                  text: "Robert Williams is likely to write an offer in 30-60 days — move to Showing?", time: "yesterday", leadId: "33333333-3333-3333-3333-000000000001", defaultRead: true, color: "#a78bfa" },
+  { id: 8,  type: "hot-alert",  title: "Pre-approval cleared",           text: "Marcus & Tonya Reed underwriting cleared — move to Qualified", time: "2 days ago", leadId: "33333333-3333-3333-3333-00000000000B", defaultRead: true, color: "#ef4444" },
   { id: 9,  type: "task-due",   title: "Open house this Saturday",       text: "1247 Ocean Blvd #802 — 12-3pm",                          time: "2 days ago",  leadId: null, defaultRead: true, color: "#f59e0b" },
   { id: 10, type: "ai-suggest", title: "Market insight",                 text: "Inventory in Pawleys Island dropped 8% this month — strong sellers' window", time: "3 days ago", leadId: null, defaultRead: true, color: "#a78bfa" },
 ];
@@ -624,7 +486,8 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("score");
   const [sortOpen, setSortOpen] = useState(false);
-  const [leadStages, setLeadStages] = useState(LEAD_STAGE_INIT);
+  const [leads, setLeads] = useState([]);
+  const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadNotes, setLeadNotes] = useState({});   // { leadId: [{ id, text, createdAt }] }
   const [leadTasks, setLeadTasks] = useState({});   // { leadId: [{ id, text, due, done }] }
   const [noteDraft, setNoteDraft] = useState("");
@@ -657,6 +520,56 @@ export default function App() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Fetch leads from Supabase whenever the session changes
+  useEffect(() => {
+    if (!session) { setLeads([]); return; }
+    let cancelled = false;
+    setLeadsLoading(true);
+    supabase
+      .from("leads")
+      .select(`
+        id, name, email, phone, source, status, stage, score, area, budget, interest,
+        ai_notes, added_days, last_contact, created_at,
+        agent:agents(full_name),
+        tags:lead_tags(tag),
+        activity:lead_activity(type, text, icon, occurred_at)
+      `)
+      .order("score", { ascending: false })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        setLeadsLoading(false);
+        if (error) { setToast({ message: "Couldn't load leads: " + error.message, kind: "error" }); return; }
+        const shaped = (data || []).map(l => ({
+          id: l.id,
+          name: l.name,
+          email: l.email,
+          phone: l.phone,
+          source: l.source,
+          status: l.status,
+          stage: l.stage,
+          score: l.score,
+          area: l.area,
+          budget: l.budget,
+          interest: l.interest,
+          aiNotes: l.ai_notes,
+          addedDays: l.added_days ?? 0,
+          lastContact: l.last_contact || "—",
+          agent: l.agent?.full_name || null,
+          tags: (l.tags || []).map(t => t.tag),
+          activity: (l.activity || [])
+            .sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at))
+            .map(a => ({
+              type: a.type,
+              text: a.text,
+              icon: a.icon || "Activity",
+              time: timeAgo(a.occurred_at),
+            })),
+        }));
+        setLeads(shaped);
+      });
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
 
   // Phased "thinking", then start streaming the result
   useEffect(() => {
@@ -732,10 +645,15 @@ export default function App() {
 
   // ----- Phase 2 helpers -----
   const moveLeadToStage = (leadId, stageId) => {
-    setLeadStages(prev => ({ ...prev, [leadId]: stageId }));
-    const lead = LEADS.find(l => l.id === leadId);
+    // Optimistic UI update
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: stageId } : l));
+    const lead = leads.find(l => l.id === leadId);
     const stage = STAGES.find(s => s.id === stageId);
     if (lead && stage) setToast({ message: `${lead.name.split(" ")[0]} moved to ${stage.label}`, kind: "success" });
+    // Persist to Supabase
+    supabase.from("leads").update({ stage: stageId }).eq("id", leadId).then(({ error }) => {
+      if (error) setToast({ message: "Couldn't save stage: " + error.message, kind: "error" });
+    });
   };
 
   const addNote = (leadId, text) => {
@@ -768,7 +686,7 @@ export default function App() {
     }));
   };
 
-  const filteredLeads = LEADS
+  const filteredLeads = leads
     .filter(l => statusFilter === "all" || l.status === statusFilter)
     .filter(l => {
       if (!search.trim()) return true;
@@ -786,7 +704,7 @@ export default function App() {
       return 0;
     });
 
-  const statusCounts = LEADS.reduce((acc, l) => {
+  const statusCounts = leads.reduce((acc, l) => {
     acc.all = (acc.all || 0) + 1;
     acc[l.status] = (acc[l.status] || 0) + 1;
     return acc;
@@ -794,7 +712,7 @@ export default function App() {
 
   // Phase 3: aggregations
   const allTasks = Object.entries(leadTasks).flatMap(([lid, tasks]) =>
-    tasks.map(t => ({ ...t, leadId: Number(lid), lead: LEADS.find(l => l.id === Number(lid)) }))
+    tasks.map(t => ({ ...t, leadId: lid, lead: leads.find(l => l.id === lid) }))
   );
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -831,7 +749,7 @@ export default function App() {
     setToast({ message: "All caught up", kind: "success" });
   };
   const jumpToLead = (leadId) => {
-    const lead = LEADS.find(l => l.id === leadId);
+    const lead = leads.find(l => l.id === leadId);
     if (lead) {
       setSelectedLead(lead);
       setView("leads");
@@ -927,7 +845,7 @@ export default function App() {
 
       <Card>
         <h3 style={cardTitle()}>Recent Hot Leads</h3>
-        {LEADS.filter(l => l.status === "hot").map(lead => (
+        {leads.filter(l => l.status === "hot").map(lead => (
           <div key={lead.id} onClick={() => { setSelectedLead(lead); setView("leads"); if (isMobile) setSidebarOpen(false); }}
                style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background 0.15s ease", borderRadius: 6 }}
                onMouseEnter={e => e.currentTarget.style.background = C.bgHover}
@@ -1074,9 +992,9 @@ export default function App() {
           />
         </Card>
       ) : isMobile ? (
-        <LeadCards leads={filteredLeads} />
+        <LeadCards items={filteredLeads} />
       ) : (
-        <LeadTable leads={filteredLeads} />
+        <LeadTable items={filteredLeads} />
       )}
     </div>
   );
@@ -1084,7 +1002,7 @@ export default function App() {
   const LeadDetail = ({ lead }) => {
     const notes = leadNotes[lead.id] || [];
     const tasks = leadTasks[lead.id] || [];
-    const stage = leadStages[lead.id];
+    const stage = lead.stage;
     const stageInfo = STAGES.find(s => s.id === stage);
 
     return (
@@ -1241,12 +1159,12 @@ export default function App() {
     );
   };
 
-  const LeadCards = ({ leads }) => (
+  const LeadCards = ({ items }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ fontSize: 12, color: C.textMuted, padding: "0 4px" }}>
-        Showing {leads.length} of {LEADS.length} leads
+        Showing {items.length} of {leads.length} leads
       </div>
-      {leads.map(lead => (
+      {items.map(lead => (
         <Card key={lead.id} onClick={() => setSelectedLead(lead)}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
             <Avatar name={lead.name} size={40} color={lead.status === "hot" ? C.red : lead.status === "new" ? C.blue : lead.status === "nurture" ? C.amber : C.textDim} />
@@ -1266,10 +1184,10 @@ export default function App() {
     </div>
   );
 
-  const LeadTable = ({ leads }) => (
+  const LeadTable = ({ items }) => (
     <>
       <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8, padding: "0 4px" }}>
-        Showing {leads.length} of {LEADS.length} leads
+        Showing {items.length} of {leads.length} leads
       </div>
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1281,7 +1199,7 @@ export default function App() {
             </tr>
           </thead>
           <tbody>
-            {leads.map(lead => (
+            {items.map(lead => (
               <tr key={lead.id}
                   onClick={() => setSelectedLead(lead)}
                   style={{ cursor: "pointer", borderBottom: `1px solid ${C.border}`, transition: "background 0.15s ease" }}
@@ -1312,7 +1230,7 @@ export default function App() {
 
   // ----- PIPELINE (Kanban) -----
   const PipelineView = () => {
-    const stageLeads = (stageId) => LEADS.filter(l => leadStages[l.id] === stageId);
+    const stageLeads = (stageId) => leads.filter(l => l.stage === stageId);
 
     return (
       <div>
@@ -1344,7 +1262,7 @@ export default function App() {
                 onDragOver={e => { e.preventDefault(); }}
                 onDrop={e => {
                   e.preventDefault();
-                  const id = parseInt(e.dataTransfer.getData("leadId"));
+                  const id = e.dataTransfer.getData("leadId");
                   if (id) moveLeadToStage(id, stage.id);
                   setDraggingId(null);
                 }}
@@ -1554,7 +1472,7 @@ export default function App() {
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>{tool.title}</h3>
             <p style={{ fontSize: 12, color: C.textMuted, margin: "0 0 12px", lineHeight: 1.5 }}>{tool.desc}</p>
-            <button onClick={() => runAI(tool.id, tool.id === "lead-score" ? (selectedLead || LEADS[0]) : null)} style={{
+            <button onClick={() => runAI(tool.id, tool.id === "lead-score" ? (selectedLead || leads[0]) : null)} style={{
               display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 6, border: "none",
               background: `linear-gradient(135deg, ${tool.color}, ${tool.color}cc)`,
               color: tool.color === C.teal || tool.color === C.blue ? "#0a0a14" : "#fff",
