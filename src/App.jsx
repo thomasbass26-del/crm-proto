@@ -76,13 +76,47 @@ const REPORTS = [
 ];
 
 const COMMUNITIES = [
-  { id: 1, name: "Barefoot Resort & Golf", slug: "barefoot-resort", type: "Golf", area: "North Myrtle Beach", listings: 24, avgPrice: "$485,000", views: 2134, leads: 22, agent: "James Parker", icon: "🏌️" },
-  { id: 2, name: "Grande Dunes", slug: "grande-dunes", type: "Luxury", area: "Myrtle Beach", listings: 18, avgPrice: "$725,000", views: 1876, leads: 15, agent: "Sarah Mitchell", icon: "🏖️" },
-  { id: 3, name: "Carolina Forest", slug: "carolina-forest", type: "Family", area: "Myrtle Beach", listings: 45, avgPrice: "$340,000", views: 3210, leads: 34, agent: "Marcus Johnson", icon: "🌲" },
-  { id: 4, name: "The Market Common", slug: "market-common", type: "Urban", area: "Myrtle Beach", listings: 12, avgPrice: "$395,000", views: 1456, leads: 11, agent: "Lisa Chen", icon: "🏙️" },
-  { id: 5, name: "Litchfield Beach", slug: "litchfield-beach", type: "Beach", area: "Pawleys Island", listings: 15, avgPrice: "$520,000", views: 987, leads: 8, agent: "Sarah Mitchell", icon: "🏝️" },
-  { id: 6, name: "Prince Creek", slug: "prince-creek", type: "Family", area: "Murrells Inlet", listings: 28, avgPrice: "$310,000", views: 1654, leads: 14, agent: "Amy Rodriguez", icon: "🏡" },
+  { id: 1, name: "Barefoot Resort & Golf", slug: "barefoot-resort", type: "Golf", area: "North Myrtle Beach", listings: 24, avgPrice: "$485,000", views: 2134, leads: 22, agent: "James Parker", icon: "🏌️",
+    tagline: "Four championship golf courses, oceanfront cabana, intracoastal views.",
+    description: "Spanning 2,300 acres along the Intracoastal Waterway, Barefoot Resort is the Grand Strand's most-recognized golf destination — anchored by four signature courses (Dye, Love, Fazio, Norman) and a private members' beach club. Most homes sit on quarter-acre or larger lots, with the strongest appreciation in the Pelican Pointe and Bayshore enclaves.",
+    highlights: ["4 championship golf courses", "Oceanfront beach cabana", "On-site marina + clubhouse", "Gated entry, 24-hour security"],
+  },
+  { id: 2, name: "Grande Dunes",            slug: "grande-dunes",     type: "Luxury", area: "Myrtle Beach",       listings: 18, avgPrice: "$725,000", views: 1876, leads: 15, agent: "Sarah Mitchell",  icon: "🏖️",
+    tagline: "Members-only marina living with the highest median price on the Strand.",
+    description: "Grande Dunes is the Grand Strand's most exclusive community — a mile of Intracoastal frontage, an Hugh Norman-designed golf course, an Ocean Club on the beach, and a 126-slip marina. Inventory rarely exceeds two dozen homes; median price is up materially year-over-year.",
+    highlights: ["Private Ocean Club", "126-slip deep-water marina", "Hugh Norman golf course", "Mediterranean architectural standard"],
+  },
+  { id: 3, name: "Carolina Forest",         slug: "carolina-forest",  type: "Family", area: "Myrtle Beach",       listings: 45, avgPrice: "$340,000", views: 3210, leads: 34, agent: "Marcus Johnson", icon: "🌲",
+    tagline: "Top-rated school district, mature trees, the family pick of the Strand.",
+    description: "Set just west of Myrtle Beach, Carolina Forest is the fastest-growing master-planned community on the Grand Strand. Tree-lined streets, six neighborhoods under one HOA umbrella, and an A-rated school district have made it the default choice for relocating families.",
+    highlights: ["A-rated school district", "Multiple community pools", "Trail and lake system", "Family-priced homes from $280K"],
+  },
+  { id: 4, name: "The Market Common",       slug: "market-common",    type: "Urban",  area: "Myrtle Beach",       listings: 12, avgPrice: "$395,000", views: 1456, leads: 11, agent: "Lisa Chen",       icon: "🏙️",
+    tagline: "The Strand's only walkable urban village. Live where the locals live.",
+    description: "Built on the former Air Force base land, The Market Common is the Grand Strand's only true walkable urban village. Boutique retail, a movie theater, weekly farmers' markets, and a 17-acre lake at the center. Homes and townhouses both available; condos sell in days.",
+    highlights: ["Walkable urban village", "Weekly farmers' market", "Movie theater + retail core", "Bike trails to the beach"],
+  },
+  { id: 5, name: "Litchfield Beach",        slug: "litchfield-beach", type: "Beach",  area: "Pawleys Island",     listings: 15, avgPrice: "$520,000", views: 987,  leads: 8,  agent: "Sarah Mitchell",  icon: "🏝️",
+    tagline: "Quiet, classic, the South Carolina coastline at its most refined.",
+    description: "Pawleys Island's Litchfield Beach is what the South Carolina coast used to feel like — wide beaches, low-rise homes, mature live oaks, and zero high-rises. The Litchfield Country Club anchors the inland side; the beach itself sits at the end of every street.",
+    highlights: ["Wide beaches, no high-rises", "Litchfield Country Club", "Bird sanctuary preserve", "Pawleys Island village minutes away"],
+  },
+  { id: 6, name: "Prince Creek",            slug: "prince-creek",     type: "Family", area: "Murrells Inlet",     listings: 28, avgPrice: "$310,000", views: 1654, leads: 14, agent: "Amy Rodriguez",   icon: "🏡",
+    tagline: "Murrells Inlet's family-favorite, with TPC golf right outside the gate.",
+    description: "Prince Creek is the largest master-planned community in Murrells Inlet — anchored by the TPC of Myrtle Beach and surrounded by some of the area's best dining (Marsh Walk is five minutes away). Eight separate sub-neighborhoods, all under one HOA, with strong inventory in the $280K-$400K range.",
+    highlights: ["TPC of Myrtle Beach on-property", "Five minutes to Marsh Walk dining", "Eight sub-neighborhoods, one HOA", "Inland and waterway lots"],
+  },
 ];
+
+// Real photography per community, keyed by slug. Unsplash CDN.
+const COMMUNITY_PHOTOS = {
+  "barefoot-resort":  "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1600&q=80&auto=format&fit=crop",
+  "grande-dunes":     "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1600&q=80&auto=format&fit=crop",
+  "carolina-forest":  "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1600&q=80&auto=format&fit=crop",
+  "market-common":    "https://images.unsplash.com/photo-1577495508326-19a1b3cf65b7?w=1600&q=80&auto=format&fit=crop",
+  "litchfield-beach": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80&auto=format&fit=crop",
+  "prince-creek":     "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=1600&q=80&auto=format&fit=crop",
+};
 
 const WEEKLY = [
   { day: "Mon", leads: 12 }, { day: "Tue", leads: 18 }, { day: "Wed", leads: 15 },
@@ -1367,6 +1401,9 @@ export default function App() {
   const [previewAgentId, setPreviewAgentId] = useState(AGENTS[0].id);
   const [previewCommunityId, setPreviewCommunityId] = useState(COMMUNITIES[0].id);
   const [previewForm, setPreviewForm] = useState({ name: "", email: "", phone: "", message: "" });
+
+  // Communities detail
+  const [selectedCommunity, setSelectedCommunity] = useState(null);
 
   // AI Assistant
   const [demoPlan, setDemoPlan] = useState("pro"); // starter | pro | enterprise (demo toggle until real billing is wired)
@@ -2816,39 +2853,324 @@ export default function App() {
   );
 
   // ----- COMMUNITIES -----
-  const CommunitiesView = () => (
-    <div>
-      <div style={pageHeader(isMobile)}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Community Pages</h1>
-          <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Live MLS-powered community listing pages</p>
+  const CommunityCard = ({ c }) => {
+    const photo = COMMUNITY_PHOTOS[c.slug];
+    const typeColor =
+      c.type === "Golf"   ? C.teal :
+      c.type === "Luxury" ? C.purple :
+      c.type === "Beach"  ? C.blue :
+      c.type === "Urban"  ? C.amber :
+      C.green;
+    return (
+      <div
+        onClick={() => setSelectedCommunity(c)}
+        style={{
+          background: C.bgCard,
+          border: `1px solid ${C.border}`,
+          borderRadius: 14,
+          overflow: "hidden",
+          cursor: "pointer",
+          transition: "transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
+          display: "flex", flexDirection: "column",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = "translateY(-3px)";
+          e.currentTarget.style.borderColor = typeColor + "66";
+          e.currentTarget.style.boxShadow = `0 16px 40px ${typeColor}18`;
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.borderColor = C.border;
+          e.currentTarget.style.boxShadow = "none";
+        }}
+      >
+        {/* Hero image */}
+        <div style={{
+          height: 180,
+          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(10,10,20,0.85) 100%), url(${photo})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          position: "relative",
+          display: "flex", alignItems: "flex-end", padding: 16,
+        }}>
+          <div style={{
+            position: "absolute", top: 14, left: 14,
+            padding: "4px 10px", borderRadius: 9999,
+            background: typeColor + "e0", color: "#0a0a14",
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase",
+            backdropFilter: "blur(8px)",
+          }}>{c.icon} {c.type}</div>
+          <div style={{
+            position: "absolute", top: 14, right: 14,
+            padding: "4px 10px", borderRadius: 9999,
+            background: "rgba(10,10,20,0.7)", color: "#fff",
+            fontSize: 11, fontWeight: 700,
+          }}>{c.listings} active</div>
+          <div style={{ position: "relative", color: "#fff" }}>
+            <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.15, marginBottom: 2 }}>{c.name}</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", letterSpacing: "0.05em" }}>{c.area}</div>
+          </div>
         </div>
-        <button onClick={() => setToast({ message: "New community wizard — coming in Phase 2", kind: "info" })} style={btnPrimary()}><Plus size={14} /> New Community</button>
-      </div>
-      <div style={gridCols(isMobile, 320)}>
-        {COMMUNITIES.map(c => (
-          <Card key={c.id} hover>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ fontSize: 32 }}>{c.icon}</div>
-                <div>
-                  <h3 style={{ fontSize: 15, fontWeight: 600, color: C.text, margin: 0 }}>{c.name}</h3>
-                  <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{c.type} • {c.area}</div>
-                </div>
-              </div>
-              <Badge color={C.teal}>{c.listings} active</Badge>
+
+        {/* Body */}
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+          <p style={{ fontSize: 12, color: C.textMuted, margin: 0, lineHeight: 1.5, minHeight: 36 }}>
+            {c.tagline}
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Median</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>{c.avgPrice}</div>
             </div>
-            <div style={urlBadge()}><Globe size={12} /> /community/{c.slug}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.textMuted, flexWrap: "wrap", gap: 4 }}>
-              <span>Avg: <strong style={{ color: C.text }}>{c.avgPrice}</strong></span>
-              <span>{c.views.toLocaleString()} views</span>
-              <span style={{ color: C.teal }}>{c.leads} leads</span>
+            <div>
+              <div style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Views</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>{c.views.toLocaleString()}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Leads</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginTop: 2 }}>{c.leads}</div>
+            </div>
+          </div>
+
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            paddingTop: 10, borderTop: `1px solid ${C.border}`,
+            fontSize: 11, color: C.textMuted,
+          }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Globe size={11} />
+              /community/{c.slug}
+            </span>
+            <span style={{ color: typeColor, fontWeight: 700, letterSpacing: "0.08em", fontSize: 10, textTransform: "uppercase" }}>
+              View →
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const CommunityDetail = ({ community }) => {
+    const photo = COMMUNITY_PHOTOS[community.slug];
+    const matchedReport = REPORTS.find(r => r.title.toLowerCase().includes(community.area.toLowerCase().split(" ")[0])) || REPORTS[0];
+    const inCommunityListings = LISTINGS.filter(L => L.community === community.name);
+    const assignedAgent = AGENTS.find(a => a.name === community.agent);
+    const conversionRate = community.views > 0 ? ((community.leads / community.views) * 100).toFixed(1) : "0.0";
+    const typeColor =
+      community.type === "Golf"   ? C.teal :
+      community.type === "Luxury" ? C.purple :
+      community.type === "Beach"  ? C.blue :
+      community.type === "Urban"  ? C.amber :
+      C.green;
+
+    const openPublicPreview = () => {
+      setPreviewCommunityId(community.id);
+      if (assignedAgent) setPreviewAgentId(assignedAgent.id);
+      setSelectedCommunity(null);
+      setView("preview");
+    };
+
+    return (
+      <div>
+        {/* Back bar */}
+        <button onClick={() => setSelectedCommunity(null)} style={{
+          background: "none", border: "none", color: C.teal,
+          fontSize: 13, cursor: "pointer", padding: "4px 0",
+          minHeight: 44, display: "flex", alignItems: "center", gap: 4,
+        }}>
+          <ChevronLeft size={16} /> Back to all communities
+        </button>
+
+        {/* Hero */}
+        <div style={{
+          marginTop: 12,
+          height: isMobile ? 220 : 340,
+          borderRadius: 14, overflow: "hidden", position: "relative",
+          backgroundImage: `linear-gradient(180deg, rgba(10,10,20,0.25) 0%, rgba(10,10,20,0.85) 100%), url(${photo})`,
+          backgroundSize: "cover", backgroundPosition: "center",
+          display: "flex", alignItems: "flex-end", padding: isMobile ? 20 : 32,
+        }}>
+          <div style={{ color: "#fff" }}>
+            <div style={{
+              display: "inline-block", marginBottom: 12,
+              padding: "4px 12px", borderRadius: 9999,
+              background: typeColor + "e0", color: "#0a0a14",
+              fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase",
+            }}>{community.icon} {community.type} community</div>
+            <h1 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 700, color: "#fff", margin: "0 0 4px", lineHeight: 1.1 }}>
+              {community.name}
+            </h1>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", letterSpacing: "0.05em" }}>
+              {community.area} · /community/{community.slug}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+          <StatCard icon={Building2}   label="Active listings"  value={community.listings}                color={typeColor} isMobile={isMobile} />
+          <StatCard icon={DollarSign}  label="Median price"     value={community.avgPrice}                color={C.green}   isMobile={isMobile} />
+          <StatCard icon={Eye}         label="30-day views"     value={community.views.toLocaleString()} color={C.blue}    isMobile={isMobile} subtitle={`${conversionRate}% conversion`} />
+          <StatCard icon={Target}      label="Leads generated"  value={community.leads}                   color={C.teal}    isMobile={isMobile} />
+        </div>
+
+        {/* Description + highlights + CTA */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr", gap: 16, marginTop: 20 }}>
+          <Card>
+            <h3 style={{ ...cardTitle(), marginBottom: 12 }}>About this community</h3>
+            <p style={{ fontSize: 14, color: C.text, lineHeight: 1.7, margin: "0 0 16px" }}>
+              {community.description}
+            </p>
+            <div style={{ fontSize: 11, fontWeight: 700, color: typeColor, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10 }}>
+              What residents have
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+              {community.highlights.map(h => (
+                <div key={h} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: C.text }}>
+                  <Check size={14} color={typeColor} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>{h}</span>
+                </div>
+              ))}
             </div>
           </Card>
-        ))}
+
+          <Card>
+            <h3 style={{ ...cardTitle(), marginBottom: 12 }}>Lead funnel</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+              {[
+                { label: "Page views",       value: community.views.toLocaleString(), pct: 100, color: C.blue },
+                { label: "Form submissions", value: community.leads,                  pct: parseFloat(conversionRate) * 5, color: C.teal },
+                { label: "Qualified leads",  value: Math.max(1, Math.floor(community.leads * 0.55)), pct: parseFloat(conversionRate) * 3, color: C.amber },
+                { label: "Closings YTD",     value: Math.max(0, Math.floor(community.leads * 0.12)), pct: parseFloat(conversionRate),     color: C.green },
+              ].map(row => (
+                <div key={row.label}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: C.textMuted }}>{row.label}</span>
+                    <span style={{ fontSize: 12, color: C.text, fontWeight: 700 }}>{row.value}</span>
+                  </div>
+                  <div style={{ height: 4, background: C.bg, borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ width: Math.min(100, Math.max(8, row.pct)) + "%", height: "100%", background: row.color, transition: "width 0.6s ease" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{
+              padding: 12, background: C.bg, borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              fontSize: 11, color: C.textMuted, lineHeight: 1.55,
+            }}>
+              <strong style={{ color: C.text }}>{conversionRate}% conversion rate</strong> from page visit to lead — that's
+              {parseFloat(conversionRate) > 1.0 ? " above " : " below "}
+              the {community.type.toLowerCase()} community average across the Grand Strand.
+            </div>
+          </Card>
+        </div>
+
+        {/* Listings in this community */}
+        <Card style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+            <h3 style={{ ...cardTitle(), margin: 0 }}>Listings in {community.name}</h3>
+            <span style={{ fontSize: 12, color: C.textDim }}>{inCommunityListings.length} active</span>
+          </div>
+          {inCommunityListings.length === 0 ? (
+            <EmptyState icon={Building2} title="No listings yet" message="Once MLS sync picks up properties in this community, they'll appear here." />
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+              {inCommunityListings.slice(0, 6).map(L => (
+                <div key={L.id} onClick={() => setSelectedListing(L)} style={{
+                  background: C.bg, border: `1px solid ${C.border}`,
+                  borderRadius: 10, padding: 12, cursor: "pointer",
+                  transition: "border-color 0.15s ease",
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = typeColor + "55"}
+                onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{formatPrice(L.price)}</div>
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L.address}</div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    {L.beds} BD · {L.baths} BA · {L.sqft.toLocaleString()} SQFT
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Agent + public site CTA */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginTop: 16 }}>
+          {assignedAgent && (
+            <Card>
+              <h3 style={{ ...cardTitle(), marginBottom: 12 }}>Assigned agent</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <Avatar name={assignedAgent.name} size={48} color={assignedAgent.plan === "Enterprise" ? C.purple : assignedAgent.plan === "Pro" ? C.blue : C.teal} />
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{assignedAgent.name}</div>
+                  <Badge color={assignedAgent.plan === "Enterprise" ? C.purple : assignedAgent.plan === "Pro" ? C.blue : C.teal}>{assignedAgent.plan}</Badge>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, fontSize: 12 }}>
+                <div>
+                  <div style={{ color: C.textDim, fontSize: 10 }}>Closings</div>
+                  <div style={{ color: C.text, fontWeight: 700 }}>{assignedAgent.closings}</div>
+                </div>
+                <div>
+                  <div style={{ color: C.textDim, fontSize: 10 }}>YTD revenue</div>
+                  <div style={{ color: C.teal, fontWeight: 700 }}>${(assignedAgent.revenue / 1000).toFixed(0)}K</div>
+                </div>
+                <div>
+                  <div style={{ color: C.textDim, fontSize: 10 }}>Subdomain</div>
+                  <div style={{ color: C.text, fontWeight: 700, fontSize: 11, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}>{assignedAgent.website}</div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <Card style={{
+            background: `linear-gradient(135deg, ${C.bgCard} 0%, ${C.bgCard} 50%, ${typeColor}18 100%)`,
+            borderColor: typeColor + "55",
+          }}>
+            <h3 style={{ ...cardTitle(), marginBottom: 8 }}>Preview the public page</h3>
+            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, margin: "0 0 14px" }}>
+              See what visitors experience when they land on <strong style={{ color: C.text }}>{assignedAgent?.website || "the agent subdomain"}/community/{community.slug}</strong>.
+              Edit content, swap hero imagery, or duplicate this page for another community.
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={openPublicPreview} style={btnPrimary()}>
+                <Globe size={14} /> Open public preview
+              </button>
+              <button onClick={() => runAI("market-report", { title: community.area, ...matchedReport })} style={quickAction(typeColor)}>
+                <Sparkles size={14} /> Generate market report
+              </button>
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const CommunitiesView = () => {
+    if (selectedCommunity) {
+      return <CommunityDetail community={selectedCommunity} />;
+    }
+    return (
+      <div>
+        <div style={pageHeader(isMobile)}>
+          <div>
+            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: C.text, margin: 0 }}>Community Pages</h1>
+            <p style={{ fontSize: 14, color: C.textMuted, margin: "4px 0 0" }}>Each community generates its own landing page with live MLS data.</p>
+          </div>
+          <button onClick={() => setToast({ message: "New community wizard — coming in Phase 2", kind: "info" })} style={btnPrimary()}><Plus size={14} /> New Community</button>
+        </div>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))",
+          gap: 18,
+        }}>
+          {COMMUNITIES.map(c => <CommunityCard key={c.id} c={c} />)}
+        </div>
+      </div>
+    );
+  };
 
   // ----- AGENTS -----
   const AgentsView = () => (
